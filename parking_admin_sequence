@@ -1,143 +1,189 @@
-# run this code in www.mermaidchart.com or your prefered IDE
-
 sequenceDiagram
-    actor Admin
-    participant System
+    participant ClientGUI as Client GUI
+    participant ClientHandler as ClientHandler<br/>(Thread 1)
+    participant ParkingSystemServer as ParkingSystemServer<br/>(Main Thread)
+    participant ParkingSystem as ParkingSystem<br/>(Singleton)
+    participant User
+    participant Vehicle
     participant ParkingSlot
     participant Ticket
-    participant User
-    participant Report
     
-    Note over Admin,Report: Admin Login Flow
+    Note over ClientGUI,Ticket: TCP/IP Connection Establishment
     
-    Admin->>System: login(email, password, accountType=Admin)
-    activate System
-    System->>System: authenticateAdmin(email, password)
-    System->>System: verifyAdminPrivileges()
-    System-->>Admin: adminLoginSuccess(adminSession)
-    deactivate System
+    ClientGUI->>ParkingSystemServer: connect(host, port 8080)
+    activate ParkingSystemServer
+    ParkingSystemServer->>ParkingSystemServer: acceptLoop() waiting for connections
+    ParkingSystemServer->>ClientHandler: newClientHandler(socket)
+    activate ClientHandler
+    Note right of ClientHandler: New thread spawned<br/>for this client
+    ClientHandler-->>ClientGUI: connection established
+    ParkingSystemServer-->>ParkingSystemServer: continue accepting new clients
+    deactivate ParkingSystemServer
     
-    Note over Admin,Report: Add New Parking Slot Flow
+    Note over ClientGUI,Ticket: User Registration Flow (over network)
     
-    Admin->>System: addNewParkingSlot(slotNumber, slotType)
-    activate System
-    System->>System: validateSlotNumber(slotNumber)
+    ClientGUI->>ClientHandler: send(CREATE_ACCOUNT_REQUEST {email, password, name})
+    activate ClientHandler
+    ClientHandler->>ClientHandler: handleMessage(msg)
+    ClientHandler->>ParkingSystem: createAccount(email, password, name)
+    activate ParkingSystem
+    Note right of ParkingSystem: Singleton instance<br/>shared across all threads
+    ParkingSystem->>ParkingSystem: validateEmail(email)
+    ParkingSystem->>ParkingSystem: hashPassword(password)
+    ParkingSystem->>User: new User(email, hashedPassword, name)
+    activate User
+    User-->>ParkingSystem: userObject
+    deactivate User
+    ParkingSystem->>ParkingSystem: addUser(userObject)
+    ParkingSystem-->>ClientHandler: userCreated(userID)
+    deactivate ParkingSystem
+    ClientHandler->>ClientHandler: send(CREATE_ACCOUNT_RESPONSE {success, userID})
+    ClientHandler-->>ClientGUI: ACCOUNT_CREATED
+    deactivate ClientHandler
     
-    alt Slot Number Available
-        System->>ParkingSlot: new ParkingSlot(slotNumber, slotType, occupied=false)
-        activate ParkingSlot
-        ParkingSlot-->>System: slotObject
-        deactivate ParkingSlot
-        
-        System->>System: addSlotToSystem(slotObject)
-        System-->>Admin: slotAddedSuccess(slotNumber)
-    else Slot Number Already Exists
-        System-->>Admin: slotExistsError()
-    end
-    deactivate System
+    Note over ClientGUI,Ticket: Login Flow (with session management)
     
-    Note over Admin,Report: View Active Tickets Flow
+    ClientGUI->>ClientHandler: send(LOGIN_REQUEST {email, password})
+    activate ClientHandler
+    ClientHandler->>ParkingSystem: login(email, password)
+    activate ParkingSystem
+    ParkingSystem->>ParkingSystem: authenticateUser(email, password)
+    ParkingSystem->>User: authenticate(password)
+    activate User
+    User-->>ParkingSystem: authSuccess
+    deactivate User
+    ParkingSystem->>ClientHandler: createSession(userID)
+    ParkingSystem-->>ClientHandler: session token
+    deactivate ParkingSystem
+    ClientHandler->>ClientHandler: storeSession(sessionToken, user)
+    Note right of ClientHandler: Session stored<br/>in this thread
+    ClientHandler->>ClientHandler: send(LOGIN_RESPONSE {success, sessionToken})
+    ClientHandler-->>ClientGUI: LOGIN_SUCCESS
+    deactivate ClientHandler
     
-    Admin->>System: viewAllActiveTickets()
-    activate System
-    System->>System: getAllUsers()
-    loop For Each User
-        System->>User: getActiveTickets()
-        activate User
-        User-->>System: userActiveTickets
-        deactivate User
-    end
-    System->>System: aggregateAllTickets()
-    System-->>Admin: displayActiveTickets(ticketsList)
-    deactivate System
+    Note over ClientGUI,Ticket: Register Vehicle Flow
     
-    Note over Admin,Report: Manually Process Payment Flow
+    ClientGUI->>ClientHandler: send(REGISTER_VEHICLE {sessionToken, plateNum, type, color, brand, model})
+    activate ClientHandler
+    ClientHandler->>ClientHandler: authenticateIfRequired(sessionToken)
+    ClientHandler->>ParkingSystem: registerVehicle(user, vehicleData)
+    activate ParkingSystem
+    ParkingSystem->>Vehicle: new Vehicle(plateNum, type, color, brand, model)
+    activate Vehicle
+    Vehicle-->>ParkingSystem: vehicleObject
+    deactivate Vehicle
+    ParkingSystem->>User: addVehicle(vehicleObject)
+    activate User
+    User-->>ParkingSystem: vehicleAdded
+    deactivate User
+    ParkingSystem-->>ClientHandler: vehicleRegistered(vehicleID)
+    deactivate ParkingSystem
+    ClientHandler->>ClientHandler: send(REGISTER_VEHICLE_RESPONSE {success, vehicleID})
+    ClientHandler-->>ClientGUI: VEHICLE_REGISTERED
+    deactivate ClientHandler
     
-    Admin->>System: searchTicketByPlateOrSlot(searchCriteria)
-    activate System
-    System->>System: findTicket(searchCriteria)
-    System->>Ticket: getTicketDetails()
+    Note over ClientGUI,Ticket: Request Available Slots (broadcast to all clients)
+    
+    ClientGUI->>ClientHandler: send(GET_AVAILABLE_SLOTS {sessionToken})
+    activate ClientHandler
+    ClientHandler->>ParkingSystem: getAvailableSlots()
+    activate ParkingSystem
+    ParkingSystem->>ParkingSlot: findAvailable()
+    activate ParkingSlot
+    ParkingSlot-->>ParkingSystem: availableSlotsList
+    deactivate ParkingSlot
+    ParkingSystem-->>ClientHandler: slotsList
+    deactivate ParkingSystem
+    ClientHandler->>ClientHandler: send(AVAILABLE_SLOTS_RESPONSE {slotsList})
+    ClientHandler-->>ClientGUI: AVAILABLE_SLOTS
+    deactivate ClientHandler
+    
+    Note over ClientGUI,Ticket: Park Vehicle & Generate Ticket
+    
+    ClientGUI->>ClientHandler: send(PARK_VEHICLE {sessionToken, slotID, plateNum})
+    activate ClientHandler
+    ClientHandler->>ParkingSystem: issueTicket(vehicle, slot)
+    activate ParkingSystem
+    
+    ParkingSystem->>ParkingSlot: assignVehicle(vehicle)
+    activate ParkingSlot
+    ParkingSlot->>ParkingSlot: setOccupied(true)
+    ParkingSlot-->>ParkingSystem: slotReserved
+    deactivate ParkingSlot
+    
+    ParkingSystem->>Ticket: new Ticket(vehicle, parkingSlot, entryTime)
     activate Ticket
-    Ticket-->>System: ticketDetails
+    Ticket->>Ticket: generateTicketID()
+    Ticket-->>ParkingSystem: ticketObject
     deactivate Ticket
-    System-->>Admin: displayTicketDetails(ticketDetails)
-    deactivate System
     
-    Admin->>System: manualPayment(ticketID, paymentAmount)
-    activate System
-    System->>Ticket: calculateTotalFee()
+    ParkingSystem->>User: addActiveTicket(ticketObject)
+    activate User
+    User-->>ParkingSystem: ticketAdded
+    deactivate User
+    
+    ParkingSystem->>ParkingSystem: addTicket(ticketObject)
+    ParkingSystem-->>ClientHandler: ticketCreated(ticketID)
+    deactivate ParkingSystem
+    
+    Note over ClientHandler,ParkingSystemServer: Broadcast space update to ALL clients
+    ClientHandler->>ParkingSystemServer: broadcast(SPACE_UPDATE {slotID, occupied=true})
+    activate ParkingSystemServer
+    Note right of ParkingSystemServer: Server sends to<br/>all ClientHandler threads
+    
+    par Broadcast to Other Clients
+        ParkingSystemServer->>ClientHandler: sendToAll(SPACE_UPDATE)
+        Note over ParkingSystemServer: Other ClientHandler<br/>threads (Thread 2, 3, etc.)<br/>receive the update
+    end
+    deactivate ParkingSystemServer
+    
+    ClientHandler->>ClientHandler: send(PARK_VEHICLE_RESPONSE {success, ticketID})
+    ClientHandler-->>ClientGUI: TICKET_CREATED
+    deactivate ClientHandler
+    
+    Note over ClientGUI,Ticket: Exit & Payment Flow
+    
+    ClientGUI->>ClientHandler: send(END_PARKING {sessionToken, ticketID})
+    activate ClientHandler
+    ClientHandler->>ParkingSystem: endParking(ticketID)
+    activate ParkingSystem
+    
+    ParkingSystem->>Ticket: closeTicket(exitTime)
     activate Ticket
-    Ticket-->>System: totalFee
+    Ticket->>Ticket: calculateDuration()
+    Ticket->>Vehicle: calculateFee(duration)
+    activate Vehicle
+    Vehicle-->>Ticket: feeAmount
+    deactivate Vehicle
+    Ticket->>Ticket: generateFee()
+    Ticket->>Ticket: setActive(false)
+    Ticket-->>ParkingSystem: totalFee
     deactivate Ticket
     
-    alt Payment Amount Valid
-        System->>Ticket: markAsPaid(paymentAmount)
-        activate Ticket
-        Ticket->>Ticket: setExitTime(currentTime)
-        Ticket->>Ticket: setPaymentStatus(paid)
-        Ticket-->>System: paymentProcessed
-        deactivate Ticket
-        
-        System->>ParkingSlot: releaseSlot(slotNumber)
-        activate ParkingSlot
-        ParkingSlot->>ParkingSlot: setOccupied(false)
-        ParkingSlot-->>System: slotReleased
-        deactivate ParkingSlot
-        
-        System->>User: moveTicketToHistory(ticketObject)
-        activate User
-        User-->>System: ticketArchived
-        deactivate User
-        
-        System-->>Admin: paymentSuccess(receipt)
-    else Payment Amount Invalid
-        System-->>Admin: paymentError(insufficientAmount)
+    ParkingSystem->>ParkingSlot: removeVehicle()
+    activate ParkingSlot
+    ParkingSlot->>ParkingSlot: setOccupied(false)
+    ParkingSlot-->>ParkingSystem: slotReleased
+    deactivate ParkingSlot
+    
+    ParkingSystem->>User: moveTicketToHistory(ticketObject)
+    activate User
+    User-->>ParkingSystem: ticketArchived
+    deactivate User
+    
+    ParkingSystem-->>ClientHandler: parkingEnded(totalFee)
+    deactivate ParkingSystem
+    
+    Note over ClientHandler,ParkingSystemServer: Broadcast space update to ALL clients
+    ClientHandler->>ParkingSystemServer: broadcast(SPACE_UPDATE {slotID, occupied=false})
+    activate ParkingSystemServer
+    
+    par Broadcast to Other Clients
+        ParkingSystemServer->>ClientHandler: sendToAll(SPACE_UPDATE)
+        Note over ParkingSystemServer: All connected clients<br/>see slot is now available
     end
-    deactivate System
+    deactivate ParkingSystemServer
     
-    Note over Admin,Report: Generate Usage Report Flow
-    
-    Admin->>System: generateUsageReport(startDate, endDate)
-    activate System
-    System->>System: getAllUsers()
-    loop For Each User
-        System->>User: getTicketHistory(startDate, endDate)
-        activate User
-        User-->>System: userHistoricalTickets
-        deactivate User
-    end
-    
-    System->>Report: new Report(ticketsData, dateRange)
-    activate Report
-    Report->>Report: calculateTotalRevenue()
-    Report->>Report: calculateParkingDuration()
-    Report->>Report: analyzeVehicleTypes()
-    Report->>Report: analyzePeakHours()
-    Report-->>System: reportObject
-    deactivate Report
-    
-    System-->>Admin: displayReport(reportObject)
-    deactivate System
-    
-    Note over Admin,Report: View Registered Vehicles Flow
-    
-    Admin->>System: viewAllRegisteredVehicles()
-    activate System
-    System->>System: getAllUsers()
-    loop For Each User
-        System->>User: getVehicles()
-        activate User
-        User-->>System: userVehicles
-        deactivate User
-    end
-    System->>System: aggregateVehicles()
-    System-->>Admin: displayVehicleList(vehiclesList)
-    deactivate System
-    
-    Note over Admin,Report: Logout Flow
-    
-    Admin->>System: logout()
-    activate System
-    System->>System: clearAdminSession()
-    System-->>Admin: logoutSuccess()
-    deactivate System
+    ClientHandler->>ClientHandler: send(END_PARKING_RESPONSE {success, totalFee})
+    ClientHandler-->>ClientGUI: PARKING_ENDED
+    deactivate ClientHandler
