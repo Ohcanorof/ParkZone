@@ -26,25 +26,58 @@ A software management system for parking garages that allows customers to self-p
 - Class candidate identification
 - Project schedule and meeting minutes
 
-### 🚧 Phase 2 In Progress (Design)
+### ✅ Phase 2 Complete (Design)
+- **Class Diagrams:** Complete object-oriented design showing inheritance hierarchies, interfaces, and relationships
+- **Sequence Diagrams:** 7 interaction flows covering all use cases
+- **Requirements Traceability:** Every sequence flow maps to specific SRS requirements
+- **Design Patterns:** Polymorphism, mediator, state, factory, and iterator patterns implemented
+
+### 🚧 Phase 3 In Progress (Implementation)
+- Server infrastructure and networking
+- Client GUI applications
+- Business logic implementation
+- File persistence system
 
 ---
 
 ## 📐 Architecture
 
-### System Components
+### System Components (Multi-Threaded Architecture)
 
 ```
-┌─────────────────┐         ┌──────────────────┐         ┌─────────────────┐
-│  Client GUI     │◄───────►│  Parking Server  │◄───────►│  Admin GUI      │
-│  (Customer)     │  TCP/IP │  (Coordinator)   │  TCP/IP │  (Employee)     │
-└─────────────────┘         └──────────────────┘         └─────────────────┘
-                                     │
-                                     ▼
-                            ┌─────────────────┐
-                            │  File Storage   │
-                            │  (.dat files)   │
-                            └─────────────────┘
+┌─────────────┐         TCP/IP          ┌──────────────────────────────┐
+│ Client GUI  │◄─────────────────────────►│  ParkingSystemServer         │
+│ (Customer)  │      Port 8080           │  - Main acceptLoop() thread  │
+└─────────────┘                          │  - Spawns ClientHandler      │
+                                         │    threads for each client   │
+┌─────────────┐         TCP/IP          └──────────────┬───────────────┘
+│ Client GUI  │◄─────────────────────────────────────► │
+│ (Customer)  │      Port 8080                Thread 1 │
+└─────────────┘                          ┌─────────────▼──────────────┐
+                                         │ ClientHandler (Thread 1)   │
+┌─────────────┐         TCP/IP          │ - Reads client messages    │
+│ Admin GUI   │◄─────────────────────────┤ - Handles authentication  │
+│ (Operator)  │      Port 8080           │ - Processes requests       │
+└─────────────┘                Thread 2  │ - Sends responses          │
+                                         └────────────┬───────────────┘
+                                                      │
+                         ┌────────────────────────────┼────────────────┐
+                         │            ALL THREADS ACCESS               │
+                         │                                             │
+                    ┌────▼──────────────────────────────────────┐     │
+                    │   ParkingSystem (SINGLETON)               │     │
+                    │   - users: List<User>                     │     │
+                    │   - slots: List<ParkingSlot>              │◄────┘
+                    │   - tickets: List<Ticket>                 │
+                    │   - Thread-safe operations                │
+                    │   - Synchronized methods                  │
+                    └───────────────────┬───────────────────────┘
+                                        │
+                                        ▼
+                               ┌─────────────────┐
+                               │  File Storage   │
+                               │  (.dat files)   │
+                               └─────────────────┘
 ```
 
 ### Class Hierarchy
@@ -189,4 +222,24 @@ class Ticket {
 | No database requirement | ✅ | File-based collections (activeTickets, history) |
 | Java + TCP/IP architecture | ✅ | Client-server design in all flows |
 
+
 ---
+
+## 🎓 Academic Integrity
+
+This project is submitted as coursework for CS401 Software Engineering. All work is original and completed by team members listed above. External code snippets (if any) are properly attributed.
+
+**Course Instructor:** Professor Smith  
+**Institution:** California State University, East Bay 
+**Semester:** Fall 2025
+
+---
+
+## 📝 License
+
+This project is submitted for academic purposes only. All rights reserved by the team members.
+
+---
+
+**Last Updated:** October 20, 2025  
+**Version:** 2.0 (Phase 2 Complete)
