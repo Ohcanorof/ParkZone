@@ -8,12 +8,14 @@ public class Main {
 		 * where we will run our main functions 
 		 */
 		//test
-		ParkingSystemServer server = new ParkingSystemServer(8080);
+		int port = 8080;
+		ParkingSystemServer server = new ParkingSystemServer(port);
 
 		try {
 			server.start();
 		}catch(Exception e) {
 			e.printStackTrace();
+			server.stop();
 		}
 	}
 

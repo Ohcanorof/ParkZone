@@ -1,8 +1,13 @@
 package model;
 
+import java.time.LocalDateTime;
+import java.time.Duration;
+
+
 public class Ticket {
   private int ticketID;
   private double totalFee;
+  private ParkingSlot slot;
   private boolean isActive;
   private Vehicle vehicle;
   private LocalDateTime entryTime;
@@ -21,27 +26,42 @@ public class Ticket {
     else{
       this.entryTime = entryTime;
     }
+    this.totalFee = 0.0;
   }
 
   //class functions
   public void closeTicket(LocalDateTime exitTime) {
     if (isActive = false){
-      return;
+      return;//ticket closed
     }
-    else{
-      this.exitTime 
-      this.isActive = false;
-      this.totalFee = proc.calculateFee(this, hourlyRate);//might change later after testing
+    
+    if(exitTime == null) {
+    	exitTime = LocalDateTime.now();
     }
+    this.exitTime= exitTime;
+    this.isActive = false;
+    this.totalFee = generateFee();
   }
   
     
-  public double generateFee(double ratePerHour){
-    int minutes = calculateDuration();
-    int roundedHours = (minutes + 59) / 60;
-    return Math.max(0, hoursRoundedUp * ratePerHour);
-  }
 
+  public int calculateDuration() {
+	  if(entryTime== null || exitTime == null) {
+		  return 0;
+	  }
+	  long minutes = Duration.between(entryTime, exitTime).toMinutes();
+	  return (int) Math.max(0, minutes);
+  }
+  
+  public double generateFee() {
+	  //rate for hour adjust later?
+	  double ratePerHour = 5.0;
+	  int minutes = calculateDuration();
+	  int roundedHours = (minutes + 59)/60; //round up
+	  
+	  totalFee = Math.max(0, roundedHours * ratePerHour);
+	  return totalFee;
+  }
   
   //getters
   public int getTicketID(){
@@ -100,7 +120,7 @@ public class Ticket {
   }
 
   public void setActive (boolean active) {
-    this.active = active;
+    this.isActive = active;
   }
   
   
