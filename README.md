@@ -241,14 +241,13 @@ This project is submitted for academic purposes only. All rights reserved by the
 
 ---
 
----
-
 ## 📝 Note
 
 Some dates might look wierd, due to inexperience with GitHub, code was committed on later dates, but was being done a week before the first commits.
 
 ---
 
-**Last Updated:** October 20, 2025  
-**Version:** 2.0 (Phase 2 Complete)
+**Last Updated:** November 17, 2025  
+**Version:** 2.5 (Phase 3 in Progress)
+
 
