@@ -10,20 +10,31 @@ public abstract class User {
 	private String AccountType;// user can be Admin, Customer, or Operator
 	protected Actionable[] actions;
 	
-	//Setters
-	public User() {
+	//class methods
+	
+	public void login(String email, String password) {
 		
 	}
 	
-	public User(int ID, String firstName, String lastName, String email, String password) {
+	public void logout() {
+		
+	}
+	
+	
+	//constructors
+	public User() {
+		
+	}
+	public User(int ID, String firstName, String lastName, String email, String password, String accountType) {
 		this.ID = ID;
 		this.firstName = firstName;
 		this.lastName = lastName;
 		this.email = email;
 		this.password = password;
+		this.AccountType = accountType;
 	}
 	
-	
+	//Setters
 	public void setID(int ID) {
 		this.ID = ID;
 	}
@@ -45,7 +56,11 @@ public abstract class User {
 	}
 
 	public void setAccountType (String accountType) {
-		this.accountType = accountType;
+		this.AccountType = accountType;
+	}
+	
+	public void setActions(Actionable[] actions) {
+		this.actions = actions;
 	}
 	
 	
@@ -76,14 +91,24 @@ public abstract class User {
 	}
 
 	public String getAccountType(){
-		return accountType;
+		return AccountType;
 	}
 	
 	public Actionable[] getActions() {
 		return actions;
 	}
 	
+	//extra function to check passwords
+	public boolean checkPassword(String inputPassword) {
+		//passwords cant be null and MUST equal the inputed password.
+		return password != null && password.equals(inputPassword);
+	}
 	
+	//extra function for user info
+	@Override
+	public String toString() {
+		return "User{" + "ID=" + ID + ", firstName='" + firstName + '\'' + ", lastName='" + lastName + '\'' + ", email='" + email + '\'' + ", accountType='" + AccountType + '\'' + '}';
+	}
 	
 
 	
