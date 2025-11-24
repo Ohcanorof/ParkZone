@@ -9,14 +9,10 @@ public class Main {
 		 */
 		//test
 		int port = 8080;
-		ParkingSystemServer server = new ParkingSystemServer(port);
+		ClientGUI gui = new ClientGUI();
 
-		try {
-			server.start();
-		}catch(Exception e) {
-			e.printStackTrace();
-			server.stop();
-		}
+		gui.start();
+		gui.connect("10.0.0.150", port);
 	}
 
 }

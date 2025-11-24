@@ -1,141 +1,384 @@
 package model;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.Socket;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.util.ArrayList;
+import java.util.List;
 
 //not complete!
 
 public class ClientGUI {
 
-	//attributes
+	//stuff for swing (GUI)
+	private JFrame frame;
+	private CardLayout cardLayout;
+	private JPanel root;
+	
+	//the window names
+	private static final String LoginPage = "LOGIN";
+	private static final String RegisterPage = "REGISTER";
+	private static final String SlotPage = "SLOTS";
+	
+	//the windows
+	private LoginPanel lp;
+	private RegisterPanel rp;
+	private SlotsPanel sp;
+
+	
+	//------------------------------------
+	//atributes
+	private EventStreamClient events;
+	private AuthSession session;
 	private User currentUser;
 	private boolean connected;
 	private String serverHost;
 	private int serverPort;
+	private int selectedGarageId;
+	private int selectedVehicleId;
+	private int selectedSlotId;
+	private List<ParkingSlot> slots = new ArrayList<>();
 	
-	//server stuff
-	private Socket socket;
-	private BufferedReader in;
-	private PrintWriter out;
+	//-----------------------------
+	//methods
 	
-	//constructors
-	public ClientGUI() {
-		this.serverHost = "localhost";
-		this.serverPort = 8080;
-		this.connected = false;
-	}
-	
-	//methods (not fully complete)
 	public void start() {
-		try {
-			connect(serverHost, serverPort);
-			consoleLoop();
-		}catch(IOException e) {
-			handleError("Failed to start client: " + e.getMessage());
-		}finally {
-			disconnect();
-		}
+		SwingUtilities.invokeLater(() ->{
+			frame = new JFrame("ParkZone Client");
+			frame.setSize(900, 600);
+			frame.setLocationRelativeTo(null);
+			frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+			
+			//closing
+			frame.addWindowListener(new WindowAdapter() {
+				@Override
+				public void windowClosing(WindowEvent e) {
+					disconnect();
+					frame.dispose();
+				}
+			});
+			
+			cardLayout = new CardLayout();
+			root = new JPanel(cardLayout);
+			lp = new LoginPanel();
+			rp = new RegisterPanel();
+			sp = new SlotsPanel();
+			
+			root.add(lp, LoginPage);
+			root.add(rp, RegisterPage);
+			root.add(sp, SlotPage);
+			
+			frame.setContentPane(root);
+			showLoginPage();
+			frame.setVisible(true);
+		});
 	}
 	
-	public void connect(String host, int port) throws IOException {
-		socket = new Socket(host, port);
-		in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-		out = new PrintWriter(socket.getOutputStream(), true);
+	public void connect(String host, int port) {
+		this.serverHost = host;
+		this.serverPort = port;
+		//(not done, implement) real socket/event stream connect
 		connected = true;
-		System.out.println("Connected to server at " + host + ":" + port);
-		
-		Thread reader = new Thread(() -> { 
-			try {
-				String line;
-				while((line = readLine()) != null) {
-					System.out.println("[from server] " + line);
-				}	
-			}catch(IOException e) {
-				if(connected) {
-				handleError("Connection lost: " + e.getMessage());
-				}
-			}
-		});
-		reader.setDaemon(true);
-		reader.start();
+		System.out.println("[ClientGUI] Connected to " + host + ":" + port);
 	}
 	
 	public void disconnect() {
-		connected = false;
-		try {
-			if(socket != null && !socket.isClosed()) {
-				socket.close();
-			}
-		}catch(IOException ignored) {
-			
+		//close socket/event stream, cleanup session (needs to test, not done)
+		
+		if(!connected) {
+			return;
 		}
-		System.out.println("Client disconected.");
+		events = null;
+		session = null;
+		connected = false;
+		currentUser = null;
+		System.out.println("[ClientGUI] Disconnected");
 	}
 	
 	public boolean login(String email, String password) {
-		System.out.println("login() not implemented yet, pretent it is....");
-		return true;
+		//replase later, just a dummy logic
+		boolean ok = email != null && !email.isBlank() && password != null && !password.isBlank();
+		
+		if (ok) {
+			//store user from server response (implement)
+			currentUser = new Client();//placeholders
+			session = new AuthSession();//placeholders
+		}
+		return ok;
 	}
 	
 	public void logout() {
-		System.out.println("logout() not implemented yet...");
+		//TODO: notify the server/ invalidate session
+		currentUser = null;
+		session = null;
+		showLoginPage();
 	}
-	//need to make these eventually...
-	 /* 
-    public java.util.List<ParkingSlot> refreshSlots(int garageId, String type) { return null; }
-    public void showSlots(int garageId, String type) {}
-    public Ticket issueTicket(int vehicleId, int slotId) { return null; }
-    public Ticket closeTicket(int ticketId) { return null; }
-    public boolean pay(int ticketId, String method) { return false; }
-    public void onSpaceUpdate(Object event) {}
-    public void updateUI() {}
-    public void handleError(String message) { System.err.println("[ClientGUI] " + message); }
-    public void selectGarage(int garageId) {}
-    public void selectVehicle(int vehicleId) {}
-    public void selectSlot(int slotId) {}
-    */
 	
-	//error handler for now
+	public List<ParkingSlot> refreshSlots(int garageId, String type){
+		//TODO: server side SlotCatalog.findAvailable(garageId, type)
+		//for now it just rets the current list (if there is one)
+		return slots;
+	}
+	
+	public void showSlots(int garageId, String type) {
+		selectedGarageId = garageId;
+		slots = refreshSlots(garageId, type);
+		sp.loadSlots(slots);
+		cardLayout.show(root, SlotPage);
+	}
+	
+	public Ticket issueTicket(int vehicleId, int slotId) {
+		//needs to send an request to the server (not done)
+		//TODO: (server work)
+		// Vehicle v = currentUser.getRegisteredVehicles().findById(vehicleId)
+        // ParkingSlot ps = slots.findById(slotId)
+        // return ParkingSystem.issueTicket(v, ps) OR TicketService.createTicket(...)
+		selectedVehicleId = vehicleId;
+		selectedSlotId = slotId;
+		return null;
+	}
+	
+	public Ticket closeTicket(int ticketId) {
+		//needs to send an request to the server (not done)
+		// TODO (server): TicketService.closeTicket(ticketId, LocalDateTime.now())
+		return null;
+	}
+	
+	public boolean pay(int ticketId, String method) {
+		// TODO (server): PaymentProcessor.takePayment(...)
+		return false;
+	}
+	
+	public void onSpaceUpdate(Object event) {
+		// TODO: called by EventStreamClient when server broadcasts updates
+		updateUI();
+	}
+	
+	public void updateUI() {
+		//refresh current view if needed
+		if(sp != null) {
+			sp.loadSlots(slots);
+		}
+	}
+	
 	public void handleError(String message) {
-		System.err.println("[ClientGUI]" + message);
+		JOptionPane.showMessageDialog(frame, message, "Error", JOptionPane.ERROR_MESSAGE);
 	}
 	
-	//helpers
+	public void selectGarage(int garageId) {
+		selectedGarageId = garageId;
+	}
 	
-	private void consoleLoop() throws IOException{
-		try(BufferedReader userIn = new BufferedReader(new InputStreamReader(System.in))){
-			System.out.println("Type messages and press Enter. Type 'quit' to exit.");
-			String line;
-			while((line = userIn.readLine()) != null){
-				if("quit".equalsIgnoreCase(line.trim())) {
-					break;
+	public void selectVehicle(int vehicleId) {
+		selectedVehicleId = vehicleId;
+	}
+	
+	public void selectSlot(int slotId) {
+		selectedSlotId = slotId;
+	}
+	
+	//-------------------------------------
+	//nav helpers
+	private void showLoginPage() {
+		cardLayout.show(root, LoginPage);
+	}
+	
+	private void showRegisterPage() {
+		cardLayout.show(root, RegisterPage);
+	}
+	
+	
+	//---------------------------------------
+	//login window
+	private class LoginPanel extends JPanel{
+		private JTextField emailField;
+		private JPasswordField passwordField;
+		
+		public LoginPanel() {
+			setLayout(new BorderLayout());
+			setBorder(new EmptyBorder(20, 20, 20, 20));
+			
+			JLabel title = new JLabel("ParkZone Login", SwingConstants.CENTER);
+			title.setFont(new Font("Arial", Font.BOLD, 26));
+			add(title, BorderLayout.NORTH);
+			
+			JPanel form = new JPanel(new GridLayout(0, 1, 10, 10));
+			form.setBorder(new EmptyBorder(40, 220, 40, 220));
+			
+			emailField = new JTextField();
+			passwordField = new JPasswordField();
+			
+			form.add(new JLabel("Email:"));
+			form.add(emailField);
+			
+			form.add(new JLabel("Password:"));
+			form.add(passwordField);
+			
+			add(form, BorderLayout.CENTER);
+			
+			JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+			
+			JButton loginBtn = new JButton("Login");
+			JButton registerBtn= new JButton("Create Account");
+			
+			loginBtn.addActionListener(e ->{
+				String email = emailField.getText();
+				String password = new String(passwordField.getPassword());
+				
+				if(login(email, password)) {
+					//show slots list after success
+					showSlots(0, "ALL");//default for now
 				}
-				send(line);
+				else {
+					handleError("Login failed. Check your credentials.");
+				}
+			});
+			
+			registerBtn.addActionListener(e -> showRegisterPage());
+			
+			buttons.add(loginBtn);
+			buttons.add(registerBtn);
+			add(buttons, BorderLayout.SOUTH);
+			
+			
+		}
+	}
+	
+	//------------------------------------------
+	//register window
+	private class RegisterPanel extends JPanel{
+		private JTextField firstNameField;
+		private JTextField lastNameField;
+		private JTextField usernameField;
+		private JTextField emailField;
+		private JPasswordField passwordField;//might change this to JTextField
+		
+		public RegisterPanel() {
+			setLayout(new BorderLayout());
+			setBorder(new EmptyBorder(20,20,20,20));
+			
+			JLabel title = new JLabel("Create Account", SwingConstants.CENTER);
+			title.setFont(new Font("Arial", Font.BOLD, 26));
+			add(title, BorderLayout.NORTH);
+			
+			JPanel form = new JPanel(new GridLayout(0, 1, 10, 10));
+			form.setBorder(new EmptyBorder(20, 220, 20, 220));
+			
+			firstNameField = new JTextField();
+			lastNameField = new JTextField();
+			usernameField = new JTextField();
+			emailField = new JTextField();
+			passwordField = new JPasswordField();
+			
+			form.add(new JLabel("First Name:"));
+			form.add(firstNameField);
+			
+			form.add(new JLabel("Last Name:"));
+			form.add(lastNameField);
+			
+			form.add(new JLabel("Username:"));
+			form.add(usernameField);
+			
+			form.add(new JLabel("Email:"));
+			form.add(emailField);
+			
+			form.add(new JLabel("Password:"));
+			form.add(passwordField);
+			
+			add(form, BorderLayout.CENTER);
+			
+			JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+			JButton createBtn = new JButton("Create Account");
+			JButton backBtn = new JButton("Back to Login");
+			
+			createBtn.addActionListener(e ->{
+				//TODO: (server): ParkingSystem.createAccount(new Client(...)) send create acc req to the server
+				//simulating success if the fields arent empty
+				if (firstNameField.getText().isBlank() ||
+	                    lastNameField.getText().isBlank() ||
+	                    usernameField.getText().isBlank() ||
+	                    emailField.getText().isBlank() ||
+	                    new String(passwordField.getPassword()).isBlank()) {
+
+					handleError("Please fill in all fields.");
+	                return;
+				}
+				
+				//pretending the acc creation worked
+				JOptionPane.showMessageDialog(frame, "Account created! Please login.", "Success", JOptionPane.INFORMATION_MESSAGE);
+				showLoginPage();
+				
+			});
+			
+			backBtn.addActionListener(e -> showLoginPage());
+			buttons.add(createBtn);
+			buttons.add(backBtn);
+			add(buttons, BorderLayout.SOUTH);
+
+		}
+	}
+	
+	
+	//-----------------------------------------------------
+	//window for parking slots
+	private class SlotsPanel extends JPanel{
+		private DefaultListModel<String> slotModel;
+		private JList<String> slotList;
+		
+		public SlotsPanel() {
+			setLayout(new BorderLayout());
+			setBorder(new EmptyBorder(20,20,20,20));
+			
+			JLabel title = new JLabel("Available Parking Slots", SwingConstants.CENTER);
+			title.setFont(new Font("Arial", Font.BOLD, 24));
+			add(title, BorderLayout.NORTH);
+			
+			slotModel = new DefaultListModel<>();
+			slotList = new JList<>(slotModel);
+			
+			add(new JScrollPane(slotList), BorderLayout.CENTER);
+			
+			JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+			JButton refreshBtn = new JButton("Refresh");
+			JButton logoutBtn = new JButton("Logout");
+			
+			refreshBtn.addActionListener(e -> {
+				slots = refreshSlots(selectedGarageId, "ALL");
+				loadSlots(slots);
+			});
+			logoutBtn.addActionListener(e -> logout());
+			
+			buttons.add(refreshBtn);
+			buttons.add(logoutBtn);
+			add(buttons, BorderLayout.SOUTH);
+
+			}
+
+		//function to load the slot list into the GUI (temp, will be changed later!)
+		public void loadSlots(List<ParkingSlot> slots) {
+			slotModel.clear();
+			
+			if(slots == null || slots.isEmpty()) {
+				slotModel.addElement("(No slots available)");
+				return;
+			}
+			for(ParkingSlot s : slots) {
+				String label = "Slot #" + s.getSlotID() + " | Occupied: " + s.isOccupied();
+				slotModel.addElement(label);
 			}
 		}
 	}
 	
-	private void send(String msg) {
-		if(out != null) {
-			out.println(msg);
-		}
+	//placeholders (might have to add a class or two)
+	class AuthSession{
+		//addsession toke, userId, expiry, etc
 	}
 	
-	private String readLine() throws IOException{
-		if (in == null) return null;
-		return in.readLine();
+	class EventStreamClient {
+	    // TODO: connect/read server push events, call ClientGUI.onSpaceUpdate(...)
 	}
 	
-	//main here for convenience testing
-	public static void main(String[] args) {
-		ClientGUI client = new ClientGUI();
-		client.start();
-	}
-	
-	
-	
-	
+
 }
