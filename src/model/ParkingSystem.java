@@ -118,6 +118,13 @@ public class ParkingSystem {
     	return tickets;
     }
     
+    public static synchronized ParkingSystem getInstance() {
+        if (instance == null) {
+            instance = new ParkingSystem();
+        }
+        return instance;
+    }
+    
     //adders
     public void addUser(User u) {
     	if(u != null) {

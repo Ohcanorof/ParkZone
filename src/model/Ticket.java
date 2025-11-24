@@ -17,7 +17,7 @@ public class Ticket {
 
 
 	//constructor
-	public Ticket(Vehicle vehicle, ParkingSlot slot, LocalDateTime entryTime){
+	public Ticket(int ticketID, Vehicle vehicle, ParkingSlot slot, LocalDateTime entryTime){
 		this.ticketID = generateNextId();
 		this.vehicle = vehicle;
 		this.slot = slot;
@@ -32,8 +32,18 @@ public class Ticket {
 	}
 	
 	//constructor so that entryTime is defualted to curr time (now)
-	public Ticket(Vehicle vehicle, ParkingSlot slot) {
-		this(vehicle, slot, LocalDateTime.now());
+	public Ticket(Vehicle vehicle, ParkingSlot slot, LocalDateTime entryTime) {
+	    this.ticketID = generateNextId();              
+	    this.vehicle = vehicle;
+	    this.slot = slot;
+	    this.isActive = true;
+	    if (entryTime == null){
+			entryTime = LocalDateTime.now();
+		}
+		else{
+			this.entryTime = entryTime;
+		}
+	    this.totalFee = 0.0;
 	}
 
 	// class functions

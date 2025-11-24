@@ -61,7 +61,7 @@ public class Client extends User {
 		int nextTicketId = activeTickets.size() + ticketHistory.size() + 1;
 		Vehicle  vehicle = registeredVehicles.get(0);//the primary vehicle
 		
-		Ticket ticket = new Ticket(nextTicketId, vehicle, LocalDateTime.now(), slot);
+		Ticket ticket = new Ticket(nextTicketId, vehicle, slot, LocalDateTime.now());
 		activeTickets.add(ticket);
 		return ticket;
 	}

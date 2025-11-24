@@ -5,6 +5,7 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -77,11 +78,16 @@ public class ClientGUI {
 	}
 	
 	public void connect(String host, int port) {
-		this.serverHost = host;
-		this.serverPort = port;
-		//(not done, implement) real socket/event stream connect
-		connected = true;
-		System.out.println("[ClientGUI] Connected to " + host + ":" + port);
+	    this.serverHost = host;
+	    this.serverPort = port;
+
+	    try {
+	        this.events = new EventStreamClient(host, port);
+	        this.connected = true;
+	    } catch (IOException e) {
+	        this.connected = false;
+	        handleError("Could not connect to server: " + e.getMessage());
+	    }
 	}
 	
 	public void disconnect() {
@@ -98,15 +104,23 @@ public class ClientGUI {
 	}
 	
 	public boolean login(String email, String password) {
-		//replase later, just a dummy logic
-		boolean ok = email != null && !email.isBlank() && password != null && !password.isBlank();
-		
-		if (ok) {
-			//store user from server response (implement)
-			currentUser = new Client();//placeholders
-			session = new AuthSession();//placeholders
-		}
-		return ok;
+	    if (!connected || events == null) {
+	        handleError("Not connected to server.");
+	        return false;
+	    }
+
+	    try {
+	        boolean ok = events.login(email, password);
+	        if (ok) {
+	            // TODO: when you have real login, fetch actual User from server
+	            this.currentUser = null; // placeholder
+	            this.session = null;     // or new AuthSession(...)
+	        }
+	        return ok;
+	    } catch (IOException | ClassNotFoundException e) {
+	        handleError("Login error: " + e.getMessage());
+	        return false;
+	    }
 	}
 	
 	public void logout() {
@@ -376,9 +390,7 @@ public class ClientGUI {
 		//addsession toke, userId, expiry, etc
 	}
 	
-	class EventStreamClient {
-	    // TODO: connect/read server push events, call ClientGUI.onSpaceUpdate(...)
-	}
+
 	
 
 }

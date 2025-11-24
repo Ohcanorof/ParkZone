@@ -25,13 +25,13 @@ public abstract class User {
 	public User() {
 		
 	}
-	public User(int ID, String firstName, String lastName, String email, String password, String accountType) {
+	public User(int ID, String firstName, String lastName, String email, String password) {
 		this.ID = ID;
 		this.firstName = firstName;
 		this.lastName = lastName;
 		this.email = email;
 		this.password = password;
-		this.AccountType = accountType;
+		this.AccountType = null; 
 	}
 	
 	//Setters
