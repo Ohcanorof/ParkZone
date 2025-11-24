@@ -11,6 +11,14 @@ public class ParkingSlot {
 		
 	}
 	
+	 public ParkingSlot(SlotType type) {
+		// new constructor while adding new slot
+		this.slotNumber = IDGenerator.getNextSlotNum(); // gets it from IDGenerator by default
+		this.isOccupied = false; // is not occupied by default
+		this.vehicle = null; // not occupied so vehicle is null by default
+		this.type = type;
+	 }
+	
 	public ParkingSlot(int slotNumber, boolean isOccupied, Vehicle vehicle, SlotType type) {
 		this.slotNumber = slotNumber;
 		this.isOccupied = isOccupied;

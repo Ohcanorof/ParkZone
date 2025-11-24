@@ -12,9 +12,9 @@ import util.ConsoleInput;
 public class AuthHandler {
 	
 	public static void login (Scanner s) { 
-			System.out.println("Email: ");
+			System.out.print("Email: ");
 			String email = ConsoleInput.readString(s);
-			System.out.println("Password: ");
+			System.out.print("Password: ");
 			String password = ConsoleInput.readString(s);
 	
 			User user = null;
@@ -37,17 +37,17 @@ public class AuthHandler {
 	}
 	
 	public static void createNewAccount(Scanner s) {
-			 System.out.println("First Name: ");
+			 System.out.print("First Name: ");
 			 String firstName = ConsoleInput.readString(s);
-			 System.out.println(" Last Name: ");
+			 System.out.print("Last Name: ");
 			 String lastName = ConsoleInput.readString(s);
-			 System.out.println("Email: ");
+			 System.out.print("Email: ");
 			 String email = ConsoleInput.readString(s);
 			 String password, confirmPassword;
 			 do {
-			 System.out.println("Password: ");
+			 System.out.print("Password: ");
 			 password = ConsoleInput.readString(s);
-			 System.out.println("Confirm Password: ");
+			 System.out.print("Confirm Password: ");
 			 confirmPassword = ConsoleInput.readString(s);
 			 } while(!password.equals(confirmPassword));
 			 int accType;

@@ -2,12 +2,14 @@ package cli;
 
 import java.util.Scanner;
 
+import model.Admin;
 import model.User;
 import util.ConsoleInput;
 
 public class NavigationHandler {
 	
 	public static void welcome (Scanner scanner) {
+		System.out.println("=======================================");
 		System.out.println("Welcome to our Smart Parking System");
 		System.out.println("1. Login");
 		System.out.println("2. Create new Account");
@@ -44,8 +46,13 @@ public class NavigationHandler {
 		if (selected < 0|| selected >= user.getActions().length) {
 			System.out.println("Invalid input"); 
 			showMenu (s, user);
-		} else {
+		} else if(user.getActions() [selected].isAdminOnly() && (!(user instanceof Admin))){
+			// check for admin functions too
+			System.out.println("Admin only can perform this action"); 
+			showMenu(s,user);
+		}else {
 			user.getActions()[selected].execute(s, user);; 
+			if (!user.getActions()[selected].getLabel().equals("Logout")) //if it's not logout user select to logout menu
 			showMenu(s,user);
 		}
 	}
