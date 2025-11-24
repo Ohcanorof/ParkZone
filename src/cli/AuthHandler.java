@@ -9,7 +9,7 @@ import model.User;
 import storage.DataManager;
 import util.ConsoleInput;
 
-public class Auth {
+public class AuthHandler {
 	
 	public static void login (Scanner s) { 
 			System.out.println("Email: ");
@@ -73,3 +73,4 @@ public class Auth {
 	
 			 
 }
+

@@ -15,10 +15,10 @@ public class NavigationHandler {
 		int input = ConsoleInput.readInt(scanner);
 		switch (input) {
 		case 1:
-			Auth.login(scanner); 
+			AuthHandler.login(scanner); 
 			break;
 		case 2:
-			Auth.createNewAccount(scanner);
+			AuthHandler.createNewAccount(scanner);
 			break;
 		case 3:
 			exit();
@@ -45,7 +45,7 @@ public class NavigationHandler {
 			System.out.println("Invalid input"); 
 			showMenu (s, user);
 		} else {
-			user.getActions() [selected]. execute() ; 
+			user.getActions()[selected].execute(s, user);; 
 			showMenu(s,user);
 		}
 	}
