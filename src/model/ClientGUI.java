@@ -1,5 +1,10 @@
 package model;
 
+import uiwindows.RolePanel;
+import uiwindows.LoginPanel;
+import uiwindows.RegisterPanel;
+import uiwindows.SlotsPanel;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -10,6 +15,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 //not complete!
+//CHANGES NEEDED
+//Role page doesnt work buttons need to redirect to the correct role login
+//remove the slots page or add in the actual maps
+//
+//need to make a 2 login pages, one for admin, one for customer (title should say which is which)
+//AAdmin view: should be able to upload a map that you can click on (2 maps, one free spots, one w/ some taken spots)
+//should be able to view the reservations made by other, have the ability to remove them (notifies the user of the removal)
+//can also prompt user to pay for it (help pay for it)
+//Customer view: should be able to have a dashboard, tabs on the left, view tickets, spots, make a reservation, view reservations, and end the reservation
+//
+/*
+ * customer page: buttons on the left, will turn it into a menu thing later
+ * weird bug when using back buttons and end up in the welcome page, the login buttons dont work
+ * will need to fix that.
+ */
+//
 
 public class ClientGUI {
 
@@ -19,11 +40,13 @@ public class ClientGUI {
 	private JPanel root;
 	
 	//the window names
+	private static final String RolePage = "ROLE";
 	private static final String LoginPage = "LOGIN";
 	private static final String RegisterPage = "REGISTER";
 	private static final String SlotPage = "SLOTS";
 	
 	//the windows
+	private RolePanel rolep;
 	private LoginPanel lp;
 	private RegisterPanel rp;
 	private SlotsPanel sp;
@@ -37,10 +60,12 @@ public class ClientGUI {
 	private boolean connected;
 	private String serverHost;
 	private int serverPort;
-	private int selectedGarageId;
+	public int selectedGarageId;
 	private int selectedVehicleId;
 	private int selectedSlotId;
-	private List<ParkingSlot> slots = new ArrayList<>();
+	private String Role;
+	
+	public List<ParkingSlot> slots = new ArrayList<>();
 	
 	//-----------------------------
 	//methods
@@ -63,16 +88,18 @@ public class ClientGUI {
 			
 			cardLayout = new CardLayout();
 			root = new JPanel(cardLayout);
-			lp = new LoginPanel();
-			rp = new RegisterPanel();
-			sp = new SlotsPanel();
+			rolep = new RolePanel(this);
+			lp = new LoginPanel(this);
+			rp = new RegisterPanel(this);
+			sp = new SlotsPanel(this);
 			
+			root.add(rolep, RolePage);
 			root.add(lp, LoginPage);
 			root.add(rp, RegisterPage);
 			root.add(sp, SlotPage);
 			
 			frame.setContentPane(root);
-			showLoginPage();
+			showRolepage();
 			frame.setVisible(true);
 		});
 	}
@@ -177,6 +204,10 @@ public class ClientGUI {
 		}
 	}
 	
+	public void setRole(String role) {
+		this.Role = role;
+	}
+	
 	public void handleError(String message) {
 		JOptionPane.showMessageDialog(frame, message, "Error", JOptionPane.ERROR_MESSAGE);
 	}
@@ -195,195 +226,36 @@ public class ClientGUI {
 	
 	//-------------------------------------
 	//nav helpers
-	private void showLoginPage() {
+	public void showLoginPage() {
 		cardLayout.show(root, LoginPage);
 	}
 	
-	private void showRegisterPage() {
+	public void showRegisterPage() {
 		cardLayout.show(root, RegisterPage);
 	}
 	
-	
-	//---------------------------------------
-	//login window
-	private class LoginPanel extends JPanel{
-		private JTextField emailField;
-		private JPasswordField passwordField;
-		
-		public LoginPanel() {
-			setLayout(new BorderLayout());
-			setBorder(new EmptyBorder(20, 20, 20, 20));
-			
-			JLabel title = new JLabel("ParkZone Login", SwingConstants.CENTER);
-			title.setFont(new Font("Arial", Font.BOLD, 26));
-			add(title, BorderLayout.NORTH);
-			
-			JPanel form = new JPanel(new GridLayout(0, 1, 10, 10));
-			form.setBorder(new EmptyBorder(40, 220, 40, 220));
-			
-			emailField = new JTextField();
-			passwordField = new JPasswordField();
-			
-			form.add(new JLabel("Email:"));
-			form.add(emailField);
-			
-			form.add(new JLabel("Password:"));
-			form.add(passwordField);
-			
-			add(form, BorderLayout.CENTER);
-			
-			JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-			
-			JButton loginBtn = new JButton("Login");
-			JButton registerBtn= new JButton("Create Account");
-			
-			loginBtn.addActionListener(e ->{
-				String email = emailField.getText();
-				String password = new String(passwordField.getPassword());
-				
-				if(login(email, password)) {
-					//show slots list after success
-					showSlots(0, "ALL");//default for now
-				}
-				else {
-					handleError("Login failed. Check your credentials.");
-				}
-			});
-			
-			registerBtn.addActionListener(e -> showRegisterPage());
-			
-			buttons.add(loginBtn);
-			buttons.add(registerBtn);
-			add(buttons, BorderLayout.SOUTH);
-			
-			
-		}
-	}
-	
-	//------------------------------------------
-	//register window
-	private class RegisterPanel extends JPanel{
-		private JTextField firstNameField;
-		private JTextField lastNameField;
-		private JTextField usernameField;
-		private JTextField emailField;
-		private JPasswordField passwordField;//might change this to JTextField
-		
-		public RegisterPanel() {
-			setLayout(new BorderLayout());
-			setBorder(new EmptyBorder(20,20,20,20));
-			
-			JLabel title = new JLabel("Create Account", SwingConstants.CENTER);
-			title.setFont(new Font("Arial", Font.BOLD, 26));
-			add(title, BorderLayout.NORTH);
-			
-			JPanel form = new JPanel(new GridLayout(0, 1, 10, 10));
-			form.setBorder(new EmptyBorder(20, 220, 20, 220));
-			
-			firstNameField = new JTextField();
-			lastNameField = new JTextField();
-			usernameField = new JTextField();
-			emailField = new JTextField();
-			passwordField = new JPasswordField();
-			
-			form.add(new JLabel("First Name:"));
-			form.add(firstNameField);
-			
-			form.add(new JLabel("Last Name:"));
-			form.add(lastNameField);
-			
-			form.add(new JLabel("Username:"));
-			form.add(usernameField);
-			
-			form.add(new JLabel("Email:"));
-			form.add(emailField);
-			
-			form.add(new JLabel("Password:"));
-			form.add(passwordField);
-			
-			add(form, BorderLayout.CENTER);
-			
-			JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-			JButton createBtn = new JButton("Create Account");
-			JButton backBtn = new JButton("Back to Login");
-			
-			createBtn.addActionListener(e ->{
-				//TODO: (server): ParkingSystem.createAccount(new Client(...)) send create acc req to the server
-				//simulating success if the fields arent empty
-				if (firstNameField.getText().isBlank() ||
-	                    lastNameField.getText().isBlank() ||
-	                    usernameField.getText().isBlank() ||
-	                    emailField.getText().isBlank() ||
-	                    new String(passwordField.getPassword()).isBlank()) {
-
-					handleError("Please fill in all fields.");
-	                return;
-				}
-				
-				//pretending the acc creation worked
-				JOptionPane.showMessageDialog(frame, "Account created! Please login.", "Success", JOptionPane.INFORMATION_MESSAGE);
-				showLoginPage();
-				
-			});
-			
-			backBtn.addActionListener(e -> showLoginPage());
-			buttons.add(createBtn);
-			buttons.add(backBtn);
-			add(buttons, BorderLayout.SOUTH);
-
-		}
+	public void showRolepage() {
+		cardLayout.show(root, RolePage);
 	}
 	
 	
-	//-----------------------------------------------------
-	//window for parking slots
-	private class SlotsPanel extends JPanel{
-		private DefaultListModel<String> slotModel;
-		private JList<String> slotList;
-		
-		public SlotsPanel() {
-			setLayout(new BorderLayout());
-			setBorder(new EmptyBorder(20,20,20,20));
-			
-			JLabel title = new JLabel("Available Parking Slots", SwingConstants.CENTER);
-			title.setFont(new Font("Arial", Font.BOLD, 24));
-			add(title, BorderLayout.NORTH);
-			
-			slotModel = new DefaultListModel<>();
-			slotList = new JList<>(slotModel);
-			
-			add(new JScrollPane(slotList), BorderLayout.CENTER);
-			
-			JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-			JButton refreshBtn = new JButton("Refresh");
-			JButton logoutBtn = new JButton("Logout");
-			
-			refreshBtn.addActionListener(e -> {
-				slots = refreshSlots(selectedGarageId, "ALL");
-				loadSlots(slots);
-			});
-			logoutBtn.addActionListener(e -> logout());
-			
-			buttons.add(refreshBtn);
-			buttons.add(logoutBtn);
-			add(buttons, BorderLayout.SOUTH);
-
-			}
-
-		//function to load the slot list into the GUI (temp, will be changed later!)
-		public void loadSlots(List<ParkingSlot> slots) {
-			slotModel.clear();
-			
-			if(slots == null || slots.isEmpty()) {
-				slotModel.addElement("(No slots available)");
-				return;
-			}
-			for(ParkingSlot s : slots) {
-				String label = "Slot #" + s.getSlotID() + " | Occupied: " + s.isOccupied();
-				slotModel.addElement(label);
-			}
-		}
+	public void startAdminLogin() {
+		Role = "ADMIN";
+		lp.setRole(Role);
+		showLoginPage();
 	}
+	
+	public void startCustomerLogin() {
+		Role = "CUSTOMER";
+		lp.setRole(Role);
+		showLoginPage();
+	}
+	public int getSelectedGarageId() {
+		return selectedGarageId;
+	}
+	
+	//GUI WINDOWS NOW IN THEIR OWN PACKAGE
+
 	
 	//placeholders (might have to add a class or two)
 	class AuthSession{
