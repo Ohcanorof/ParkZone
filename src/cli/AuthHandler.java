@@ -56,8 +56,7 @@ public class AuthHandler {
 			 System.out.println("1. Client");
 			 System.out.println("2. Admin");
 			 accType = ConsoleInput.readInt(s);
-			 } 
-			 while (accType < 1 || accType > 2);
+			 }  while (accType < 1 || accType > 2);
 			 User user;
 			 if (accType == 2) {
 				 user = new Admin(IDGenerator.getNextUserID(), firstName, lastName, email, password);

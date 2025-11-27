@@ -44,7 +44,7 @@ public class ConsoleInput {
 				 inputInt = Integer.parseInt(input);
 				 intIn = true;
 			 } catch (Exception e) {
-				 System. out.println("Please enter int");
+				 System. out.println("Enter an intiger");
 			 }
 		 }
 		 return inputInt;
