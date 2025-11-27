@@ -27,4 +27,21 @@ public class ParkingLotManager {
 		}
 		return ticket;
 	}
+	
+	public ParkingSlot findAvailableSlot(Vehicle vehicle) {
+		SlotType[] carTypes = new SlotType[] {SlotType.COMPACT, SlotType.LARGE};
+		SlotType[] bikeTypes = new SlotType[] {SlotType.BIKE};
+		SlotType[] schooterTypes = new SlotType[] {SlotType.BIKE};
+		SlotType[] bicycleTypes = new SlotType[] {SlotType.BICYCLE};
+		SlotType[] vanTypes = new SlotType[] {SlotType.LARGE};
+		SlotType[] truckTypes = new SlotType[] {SlotType.LARGE};
+		SlotType[] busTypes = new SlotType[] {SlotType.LARGE};
+		SlotType[] evTypes = new SlotType[] {SlotType.ELECTRIC, SlotType.COMPACT, SlotType.LARGE};
+
+	}
+	
+	
+	
+	
+	
 }
