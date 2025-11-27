@@ -2,7 +2,7 @@ package uiwindows;
 
 import model.ClientGUI;
 import model.ParkingSlot;
-
+import model.User;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -14,6 +14,7 @@ import java.util.List;
 	    private final ClientGUI gui;
 	    private JPanel contentPanel;
 	    private CardLayout contentLayout;
+	    private JTextArea accountInfoArea;
 	    
 	    //names for the cards
 	    private static final String CARD_SLOTS = "SLOTS";
@@ -96,6 +97,7 @@ import java.util.List;
 			});
 			
 			viewAccountBtn.addActionListener(e->{
+				refreshAccountInfo();
 				contentLayout.show(contentPanel, CARD_ACCOUNT);
 			});
 			
@@ -111,6 +113,11 @@ import java.util.List;
 			}
 		
 
+		public void refreshAccountInfo() {
+			if(accountInfoArea != null) {
+				accountInfoArea.setText(buildAccountInfoText());
+			}
+		}
 		//functions for the cards
 		
 		private JPanel buildSlotsCard() {
@@ -185,16 +192,13 @@ import java.util.List;
 	        header.setFont(new Font("Arial", Font.BOLD, 18));
 	        panel.add(header, BorderLayout.NORTH);
 			
-	        JTextArea infoArea = new JTextArea();
-	        infoArea.setEditable(false);
-	        infoArea.setText("""
-	                Name: (stub)
-	                Email: (stub)
-	                Role: (stub)
-	                Later, this can be populated from ClientGUI.currentUser.
-	                """);
+	        accountInfoArea = new JTextArea();
+	        accountInfoArea.setEditable(false);
+	        accountInfoArea.setFont(new Font("Monospaced", Font.PLAIN, 13));
 			
-			panel.add(new JScrollPane(infoArea), BorderLayout.CENTER);
+	        //some initial text
+	        accountInfoArea.setText(buildAccountInfoText());
+			panel.add(new JScrollPane(accountInfoArea), BorderLayout.CENTER);
 			return panel;
 		}
 		
@@ -232,5 +236,36 @@ import java.util.List;
 				String label = "Slot #" + s.getSlotID() + " | Occupied: " + s.isOccupied();
 				slotModel.addElement(label);
 			}
+		}
+		
+		private String buildAccountInfoText() {
+			StringBuilder sb = new StringBuilder();
+			
+			User user = gui.getCurrentUser();
+			String role = gui.getRole();
+			
+			if(user == null) {
+				sb.append("Not logged in or user info not loaded yet.\n\n");
+				sb.append("Role: ").append(role != null ? role : "(unknown)").append("\n");
+				sb.append("\nLater, this can be populated from the real server user object.");
+			}
+			else {
+				sb.append("Name: ").append(user.getFullName() != null ? user.getFullName() : "(unknown)").append("\n");
+				sb.append("Email: ").append(user.getEmail() != null ? user.getEmail() : "(unknown)").append("\n");
+				sb.append("Role: ");
+				if(user.getAccountType() != null) {
+					sb.append(user.getAccountType());
+				}else if(role != null){
+					sb.append(role);
+				}
+				else {
+					sb.append("(unknown)");
+				}
+				sb.append("\n");
+				sb.append("User ID: ").append(user.getID()).append("\n");
+				
+			}
+			
+			return sb.toString();
 		}
 	}

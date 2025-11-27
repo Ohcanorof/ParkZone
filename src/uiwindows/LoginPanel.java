@@ -56,7 +56,6 @@ import java.awt.*;
 			});
 			
 			registerBtn.addActionListener(e -> gui.showRegisterPage());
-			backBtn.addActionListener(e -> gui.showRolepage());
 			
 			buttons.add(loginBtn);
 			buttons.add(registerBtn);

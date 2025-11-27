@@ -21,14 +21,17 @@ public class ClientHandler implements Runnable {
 	private ObjectInputStream in;
 	private final AtomicBoolean open = new AtomicBoolean(true);
 	private boolean loggedIn = false;
-	
-	private final ParkingSystem parkingSystem = ParkingSystem.getInstance();
+	private volatile boolean running = true;
+	private final ParkingSystem parkingSystem; 
+	//to track the logged in user:
+	private User currentUser;
 	
 	//constructor
 	public ClientHandler(ParkingSystemServer server, Socket socket, String clientId) {
         this.server = server;
         this.socket = socket;
         this.clientId = clientId;
+        this.parkingSystem = server.getParkingSystem();
     }
 	
 	//getters
@@ -75,7 +78,10 @@ public class ClientHandler implements Runnable {
                     // must login first
                     if (Message.TYPE_LOGIN.equals(message.getType())) {
                         handleLogin(message);
-                    } else {
+                    }else if(Message.TYPE_REGISTER.equals(message.getType())){ 
+                    	handleRegister(message);
+                    }
+                    else {
                         Message errorMsg = new Message(message.getType());
                         errorMsg.setStatus("error");
                         errorMsg.setText("Must login first");
@@ -101,27 +107,119 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    
+    private void handleRegister(Message message) throws IOException{
+    	System.out.println("[Client " + clientId + "] Processing registration...");
+    	
+    	String payload = message.getText();
+    	//we expect : firstName|lastName|email|password|accountType
+    	//treating the missing accountType as "CUSTOMER"
+    	if(payload == null || payload.isBlank()) {
+    		Message resp = new Message(Message.TYPE_REGISTER);
+    		resp.setStatus("error");
+    		resp.setText("Empty registration payload");
+    		send(resp);
+    		return;
+    	}
+    	
+    	String[] parts = payload.split("\\|", -1);
+    	if(parts.length <4) {
+    		Message resp = new Message(Message.TYPE_REGISTER);
+    		resp.setStatus("error");
+    		resp.setText("Invalid registration payload");
+    		send(resp);
+    		return;
+    	}
+    	
+    	String firstName   = parts[0];
+        String lastName    = parts[1];
+        String email       = parts[2];
+        String password    = parts[3];
+        String accountType = (parts.length >= 5 && !parts[4].isBlank()) ? parts[4] : "CUSTOMER";
+    
+        
+        // very simple duplicate check by email
+        for (User u : parkingSystem.getUsers()) {
+            if (email.equalsIgnoreCase(u.getEmail())) {
+                Message resp = new Message(Message.TYPE_REGISTER);
+                resp.setStatus("error");
+                resp.setText("Email already in use");
+                send(resp);
+                return;
+            }
+        }
+        
+        // assign an ID: size+1
+        int newId = parkingSystem.getUsers().size() + 1;
+        
+        User user;
+        if ("ADMIN".equalsIgnoreCase(accountType)) {
+            user = new Admin(newId, firstName, lastName, email, password);
+        } else {
+            user = new Client(newId, firstName, lastName, email, password);
+        }
+        user.setAccountType(accountType);
+        parkingSystem.createAccount(user);
+        Message resp = new Message(Message.TYPE_REGISTER);
+        resp.setStatus("success");
+        resp.setText("Account created");
+        send(resp);
+
+        System.out.println("[Client " + clientId + "] Registered new user: " + user);
+    }
+    
     private void handleLogin(Message message) throws IOException {
-        System.out.println("[Client " + clientId + "] Processing login...");
+        System.out.println("[Client " + clientId + "] Processing login for client " + clientId);
 
-        // TODO: integrate with ParkingSystem.login(email, password) later.
-        // For now, just accept everyone.
-        loggedIn = true;
+        String payload = message.getText();
+        String email = null;
+        String password = null;
 
-        Message response = new Message(Message.TYPE_LOGIN);
-        response.setStatus("success");
-        response.setText("Login successful");
-        send(response);
-
-        System.out.println("[Client " + clientId + "] Login successful");
+        if(payload != null) {
+        	String[] parts = payload.split("\\|", 2);
+        	if(parts.length == 2) {
+        		email = parts[0];
+        		password = parts[1];
+        	}
+        }
+        
+        Message resp = new Message(Message.TYPE_LOGIN);
+        
+        if(email == null || password == null) {
+        	resp.setStatus("error");
+        	resp.setText("Invalid login payload");
+        	send(resp);
+        	return;
+        }
+        
+        User user = parkingSystem.login(email, password);
+        
+        if(user == null) {
+        	resp.setStatus("error");
+        	resp.setText("Invalid email or password");
+        	send(resp);
+        	return;
+        }
+        
+        //save loged in user and mark them as logged in
+        this.currentUser = user;
+        this.loggedIn = true;
+        //might change later
+        String accountType = user.getAccountType() != null ? user.getAccountType() : "";
+        String data = user.getID() + "|" +user.getFirstName() + "|" +user.getLastName() + "|" +user.getEmail() + "|" +accountType;
+        
+        resp.setStatus("success");
+        resp.setText(data);
+        send(resp);
+        
+        
     }
 
     private void handleText(Message message) throws IOException {
         System.out.println("[Client " + clientId + "] Processing text: " + message.getText());
 
-        String capitalizedText = message.getText() == null
-                ? ""
-                : message.getText().toUpperCase();
+        //MIGHT CHANGE THIS
+        String capitalizedText = message.getText() == null ? "" : message.getText().toUpperCase();
 
         Message response = new Message(Message.TYPE_TEXT);
         response.setStatus("success");

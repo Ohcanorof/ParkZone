@@ -63,6 +63,12 @@ import java.awt.*;
 			createBtn.addActionListener(e ->{
 				//TODO: (server): ParkingSystem.createAccount(new Client(...)) send create acc req to the server
 				//simulating success if the fields arent empty
+				String firstName = firstNameField.getText().trim();
+			    String lastName  = lastNameField.getText().trim();
+			    String username  = usernameField.getText().trim(); // not used yet on server
+			    String email     = emailField.getText().trim();
+			    String password  = new String(passwordField.getPassword()).trim();
+			    
 				if (firstNameField.getText().isBlank() ||
 	                    lastNameField.getText().isBlank() ||
 	                    usernameField.getText().isBlank() ||
@@ -72,17 +78,18 @@ import java.awt.*;
 					gui.handleError("Please fill in all boxes!");
 	                return;
 				}
-				String role = (String) roleBox.getSelectedItem();
-				if(role != null) {
-					gui.setRole(role.toUpperCase()); //puts them in upper case
+				
+				// For now: treat all signups as CUSTOMER, fixing a bug
+			    String accountType = "CUSTOMER";
+				boolean ok = gui.createAccount(firstName, lastName, email, password, accountType);
+				
+				if(ok) {
+					JOptionPane.showMessageDialog(this, "Account created on server! Please login.", "Success", JOptionPane.INFORMATION_MESSAGE);
+			        gui.showLoginPage();
 				}
-				
-				//pretending the acc creation worked
-				//TODO: actually call gui.createAccount() /send to server
-				//think it account creation works?!
-				JOptionPane.showMessageDialog(this, "Account created! Please login.", "Success", JOptionPane.INFORMATION_MESSAGE);
-				gui.showLoginPage();
-				
+				else {
+					gui.handleError("Account creation failed. Try a different email.");
+				}
 			});
 			
 			backBtn.addActionListener(e -> gui.showLoginPage());

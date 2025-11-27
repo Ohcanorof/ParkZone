@@ -1,6 +1,5 @@
 package model;
 
-import uiwindows.RolePanel;
 import uiwindows.LoginPanel;
 import uiwindows.RegisterPanel;
 import uiwindows.SlotsPanel;
@@ -15,20 +14,31 @@ import java.util.ArrayList;
 import java.util.List;
 
 //not complete!
-//CHANGES NEEDED
-//Role page doesnt work buttons need to redirect to the correct role login
-//remove the slots page or add in the actual maps
+// CHANGES NEEDED
+// Removed the RolePanel.java, seemed redundant
+// clients are real now, and they can see their account info (role is hardcoded rn, chage later)
 //
-//need to make a 2 login pages, one for admin, one for customer (title should say which is which)
-//AAdmin view: should be able to upload a map that you can click on (2 maps, one free spots, one w/ some taken spots)
-//should be able to view the reservations made by other, have the ability to remove them (notifies the user of the removal)
-//can also prompt user to pay for it (help pay for it)
-//Customer view: should be able to have a dashboard, tabs on the left, view tickets, spots, make a reservation, view reservations, and end the reservation
+// hooking up the class functions with the gui, so now clients are real (they werent before, just a demo)
+
+// needed updates:
 //
-/*
+// Admin view: should be able to upload a map that you can click on (2 maps, one free spots, one w/ some taken spots)
+// should be able to view the reservations made by other, have the ability to remove them (notifies the user of the removal)
+// can also prompt user to pay for it (help pay for it)
+//
+// Customer view: should be able to have a dashboard, tabs on the left, view tickets, spots, make a reservation, view reservations, and end the reservation
+//
+/* what im working on right now:
  * customer page: buttons on the left, will turn it into a menu thing later
- * weird bug when using back buttons and end up in the welcome page, the login buttons dont work
- * will need to fix that.
+ * account info page working, will add a part where you can view registered vehicles in the account info maybe
+ * next is the register vehicle, and slots!
+ * 
+ * still need to add more functionallity, and the Admin side
+ * 
+ * 
+ * Working content: 
+ * login logout, account registering (admin one needs work), account info display is good
+ * overall gui is fine (for now)
  */
 //
 
@@ -40,13 +50,11 @@ public class ClientGUI {
 	private JPanel root;
 	
 	//the window names
-	private static final String RolePage = "ROLE";
 	private static final String LoginPage = "LOGIN";
 	private static final String RegisterPage = "REGISTER";
 	private static final String SlotPage = "SLOTS";
 	
 	//the windows
-	private RolePanel rolep;
 	private LoginPanel lp;
 	private RegisterPanel rp;
 	private SlotsPanel sp;
@@ -88,18 +96,15 @@ public class ClientGUI {
 			
 			cardLayout = new CardLayout();
 			root = new JPanel(cardLayout);
-			rolep = new RolePanel(this);
 			lp = new LoginPanel(this);
 			rp = new RegisterPanel(this);
 			sp = new SlotsPanel(this);
 			
-			root.add(rolep, RolePage);
 			root.add(lp, LoginPage);
 			root.add(rp, RegisterPage);
 			root.add(sp, SlotPage);
 			
 			frame.setContentPane(root);
-			showRolepage();
 			frame.setVisible(true);
 		});
 	}
@@ -108,6 +113,11 @@ public class ClientGUI {
 	    this.serverHost = host;
 	    this.serverPort = port;
 
+	    //dont open a socket if you are already connected
+	    if(connected && events != null) {
+	    	return;
+	    }
+	    
 	    try {
 	        this.events = new EventStreamClient(host, port);
 	        this.connected = true;
@@ -120,9 +130,18 @@ public class ClientGUI {
 	public void disconnect() {
 		//close socket/event stream, cleanup session (needs to test, not done)
 		
-		if(!connected) {
+		if(!connected && events == null) {
 			return;
 		}
+		try {
+			if(events != null) {
+				events.close();//closing the socket and streams
+			}
+		}catch(Exception e) {
+			System.err.println("[ClientGUI] Error while closing connection: "+ e.getMessage());
+		}
+		
+		
 		events = null;
 		session = null;
 		connected = false;
@@ -131,19 +150,37 @@ public class ClientGUI {
 	}
 	
 	public boolean login(String email, String password) {
-	    if (!connected || events == null) {
-	        handleError("Not connected to server.");
+	    //make sure there is a connection
+		if (!connected || events == null) {
+	    	
+	    	if(serverHost == null || serverPort == 0) {
+	    		handleError("Not connected to server.");
 	        return false;
+	    	}
+	        
+	    	connect(serverHost, serverPort);
+	    	if(!connected || events == null) {
+	    		//connect showed the error so ret false
+	    		return false;
+	    	}
 	    }
 
 	    try {
-	        boolean ok = events.login(email, password);
-	        if (ok) {
-	            // TODO: when you have real login, fetch actual User from server
-	            this.currentUser = null; // placeholder
-	            this.session = null;     // or new AuthSession(...)
+	    	//ask server to log in and ret a real user
+	        User u = events.login(email, password);
+	        if (u != null) {
+	        	//assign currentUser first
+	            this.currentUser = u;
+	            //fill in account type from role if its needed
+	            if (currentUser.getAccountType() == null && Role != null) {
+	            	currentUser.setAccountType(Role);
+	            }
+	            this.session = null;//this is a place holder for the future AuthSession
+	            return true;
+	        }else {
+	        	//login failed on the SERVER side
+	        	return false;
 	        }
-	        return ok;
 	    } catch (IOException | ClassNotFoundException e) {
 	        handleError("Login error: " + e.getMessage());
 	        return false;
@@ -152,8 +189,7 @@ public class ClientGUI {
 	
 	public void logout() {
 		//TODO: notify the server/ invalidate session
-		currentUser = null;
-		session = null;
+		disconnect();
 		showLoginPage();
 	}
 	
@@ -208,6 +244,14 @@ public class ClientGUI {
 		this.Role = role;
 	}
 	
+	public User getCurrentUser() {
+		return currentUser;
+	}
+	
+	public String getRole() {
+		return Role;
+	}
+	
 	public void handleError(String message) {
 		JOptionPane.showMessageDialog(frame, message, "Error", JOptionPane.ERROR_MESSAGE);
 	}
@@ -224,6 +268,7 @@ public class ClientGUI {
 		selectedSlotId = slotId;
 	}
 	
+	
 	//-------------------------------------
 	//nav helpers
 	public void showLoginPage() {
@@ -234,9 +279,6 @@ public class ClientGUI {
 		cardLayout.show(root, RegisterPage);
 	}
 	
-	public void showRolepage() {
-		cardLayout.show(root, RolePage);
-	}
 	
 	
 	public void startAdminLogin() {
@@ -262,7 +304,27 @@ public class ClientGUI {
 		//addsession toke, userId, expiry, etc
 	}
 	
-
+	public boolean createAccount(String firstName, String lastName, String email, String password, String accountType) {
+		if(!connected || events == null) {
+			if(serverHost == null || serverPort == 0) {
+				handleError("Not connected to server.");
+				return false;
+			}
+			connect(serverHost, serverPort);
+			if(!connected || events == null) {
+				return false;
+			}
+		}
+		
+		try {
+			return events.registerAccount(firstName, lastName, email, password, accountType);
+		}catch (IOException | ClassNotFoundException e) {
+			handleError("Account creation error: " + e.getMessage());
+			return false;
+		}
+		
+		
+	}
 	
 
 }
