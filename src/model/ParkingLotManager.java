@@ -29,19 +29,36 @@ public class ParkingLotManager {
 	}
 	
 	public ParkingSlot findAvailableSlot(Vehicle vehicle) {
-		SlotType[] carTypes = new SlotType[] {SlotType.COMPACT, SlotType.LARGE};
-		SlotType[] bikeTypes = new SlotType[] {SlotType.BIKE};
-		SlotType[] schooterTypes = new SlotType[] {SlotType.BIKE};
-		SlotType[] bicycleTypes = new SlotType[] {SlotType.BICYCLE};
-		SlotType[] vanTypes = new SlotType[] {SlotType.LARGE};
-		SlotType[] truckTypes = new SlotType[] {SlotType.LARGE};
-		SlotType[] busTypes = new SlotType[] {SlotType.LARGE};
-		SlotType[] evTypes = new SlotType[] {SlotType.ELECTRIC, SlotType.COMPACT, SlotType.LARGE};
-
+	 // if its type is the same type we search for and is available then that's it
+	 SlotType[] types;
+	 if (vehicle instanceof Car) {
+		 types = new SlotType[] {SlotType. COMPACT, SlotType.LARGE};
+	 } else if (vehicle instanceof Bike) {
+		 types = new SlotType[] {SlotType.BIKE};
+	 } else if (vehicle instanceof Scooter) {
+		 types = new SlotType[] {SlotType.BIKE};
+	 } else if (vehicle instanceof Bicycle) {
+		 types = new SlotType[] {SlotType.BICYCLE};
+	 } else if (vehicle instanceof EV) {
+		 types = new SlotType[] {SlotType.ELECTRIC, SlotType.COMPACT, SlotType.LARGE};
+	 } else {
+		 types = new SlotType[] {SlotType.LARGE};
+	 }
+	 
+	 ParkingSlot requiredSlot = null;
+	 
+	 for (int i = 0; i < types.length; i++) {
+		 SlotType type = types[i];
+		 for (int j = 0; j < DataManager.parkingSlots.size(); j++) {
+			 ParkingSlot slot = DataManager.parkingSlots.get(j);
+			 if (slot.getType().equals(type) && slot.isAvailable()) {
+				 requiredSlot = slot;
+				 break;
+			 }
+		 }
+	 }
+	 return requiredSlot;
 	}
-	
-	
-	
 	
 	
 }
