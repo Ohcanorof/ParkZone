@@ -39,6 +39,11 @@ public class ShowSlotsStatus implements Actionable {
 		int electricSlots = 0;
 		int bicycleSlots = 0;
 		
+		
+		// counter for occupied slots
+		int occupiedSlots = 0;
+	
+		
 		// printing occupied slots then counters of avaiable slots
 		System.out.println("Occupied Slots: ");
 		
@@ -64,40 +69,44 @@ public class ShowSlotsStatus implements Actionable {
 				}
 			}else {
 				// occupied
-				System.out.println("Slot Number: " + slot.getSlotNumber());
-				System.out.println("Slot Type: "+ slot.getType());
+				occupiedSlots++;
+				System.out.println("\tSlot Number: " + slot.getSlotNumber());
+				System.out.println("\tSlot Type: "+ slot.getType());
 				Vehicle vehicle = slot.getVehicle();
 				if (vehicle instanceof Car) {
-					System.out.println("Vehicle Type: CAR");
+					System.out.println("\tVehicle Type: CAR");
 				} else if (vehicle instanceof Bike) {
-					System.out.println("Vehicle Type: BIKE");
+					System.out.println("\tVehicle Type: BIKE");
 				} else if (vehicle instanceof Scooter) {
-					System.out.println("Vehicle Type: SCOOTER");
+					System.out.println("\tVehicle Type: SCOOTER");
 				} else if (vehicle instanceof Bicycle) {
-					System.out.println("Vehicle Type: BICYCLE");
+					System.out.println("\tVehicle Type: BICYCLE");
 				} else if (vehicle instanceof EV) {
-					System.out.println("Vehicle Type: EV");
+					System.out.println("\tVehicle Type: EV");
 				} else if (vehicle instanceof Bus) {
-					System.out.println("Vehicle Type: BUS");
+					System.out.println("\tVehicle Type: BUS");
 				} else if (vehicle instanceof Truck) {
-					System.out.println("Vehicle Type: TRUCK");
+					System.out.println("\tVehicle Type: TRUCK");
 				} else if (vehicle instanceof Van) {
 						System.out.println("Vehicle Type: Van");
 				} 
-				System.out.println("Vehicle Plate: " + vehicle.getPlateNumber());
-				System.out.println("------------------------\n");
+				System.out.println("\tVehicle Plate: " + vehicle.getPlateNumber());
+				System.out.println("\t------------------------\n");
 			
 			}
 		}
 		
-		System.out.println("Available Slots: ");
-		System.out.println("Bike: " + bikeSlots);
-		System.out.println("Compact: " + compactSlots);
-		System.out.println("Large: " + largeSlots);
-		System.out.println("Electric: " + electricSlots);
-		System.out.println("Bicycle: " + bicycleSlots + "\n");
+		// this will print no occupied slot if its counter = 0
+		if (occupiedSlots == 0) {
+			 System.out.println("\tNo occupied slots \n");
+		}
 		
-		// for 
+		System.out.println("Available Slots: ");
+		System.out.println("\tBike: " + bikeSlots);
+		System.out.println("\tCompact: " + compactSlots);
+		System.out.println("\tLarge: " + largeSlots);
+		System.out.println("\tElectric: " + electricSlots);
+		System.out.println("\tBicycle: " + bicycleSlots + "\n");
 		
 	}
 

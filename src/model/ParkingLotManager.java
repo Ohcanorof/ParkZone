@@ -5,7 +5,7 @@ import storage.DataManager;
 public class ParkingLotManager {
 	
 	// helper function to manage the system
-	public Vehicle findByPlate(String plate) {
+	public static Vehicle findByPlate(String plate) {
 		Vehicle v = null;
 		for (Vehicle vehicle : DataManager.registeredVehicles) {
 			if (vehicle.getPlateNumber().toLowerCase().equals(plate.toLowerCase())) {
@@ -17,7 +17,7 @@ public class ParkingLotManager {
 		
 	}
 
-	public Ticket findActiveTicketByPlate(String plate) {
+	public static Ticket findActiveTicketByPlate(String plate) {
 		Ticket ticket = null;
 		for (Ticket t : DataManager.activeTickets) {
 			if (t.getVehicle().getPlateNumber().toLowerCase().equals(plate.toLowerCase())) {
@@ -28,7 +28,7 @@ public class ParkingLotManager {
 		return ticket;
 	}
 	
-	public ParkingSlot findAvailableSlot(Vehicle vehicle) {
+	public static ParkingSlot findAvailableSlot(Vehicle vehicle) {
 	 // if its type is the same type we search for and is available then that's it
 	 SlotType[] types;
 	 if (vehicle instanceof Car) {

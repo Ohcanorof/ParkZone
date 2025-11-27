@@ -3,21 +3,59 @@ package cli;
 import java.util.Scanner;
 
 import model.Actionable;
+import model.ParkingLotManager;
+import model.ParkingSlot;
+import model.Ticket;
 import model.User;
+import model.Vehicle;
+import storage.DataManager;
+import util.ConsoleInput;
 
 public class VehicleEntry implements Actionable {
 
 	@Override
 	public String getLabel() {
-		// TODO Auto-generated method stub
-		return null;
+		return "Vehicle Entry";
 	}
-
-	@Override
-	public void execute(Scanner s, User u) {
-		// TODO Auto-generated method stub
-		
+	
+	// vehicle plate num.
+	@Override	
+	public void execute (Scanner s, User u) {
+		System.out.print("Enter Vehicle Plate Number: ");
+		String selected;
+		String plateNumber;
+		do {
+			plateNumber = ConsoleInput.readString(s);
+			System. out.println("Vehicle Plate Number: "+ plateNumber);
+		do {
+			System.out.println("Are you sure that you want to continue? (y/n)");
+			selected = ConsoleInput.readString(s).toLowerCase();
+		} while (!selected.equals("y") && !selected.equals("n"));
+	} while (!selected.equals("y"));
+	
+	Vehicle vehicle = ParkingLotManager.findByPlate(plateNumber);
+	
+	if (vehicle == null) {
+		// if vehicle don't exit then we will add it to our regiserted vehicle
 	}
+	
+	ParkingSlot slot = ParkingLotManager.findAvailableSlot(vehicle);
+	if (slot == null) {
+	 // no available slots
+	 System.out.println("Sorry, currently there is no available slots");
+	 System.out.println("Please try again later");
+	 return;
+	}
+	
+	//make the slot occupied and add the vehicle to it
+	slot.occupy();
+	slot.setVehicle(vehicle);
+	
+	Ticket ticket = new Ticket(vehicle, slot.getSlotNumber());
+	DataManager.activeTickets.add(ticket);
+	System. out.println("Vehicle entered successfully");
+	System. out.println("Ticket ID: " + ticket.getID());
+}
 
 	@Override
 	public boolean isAdminOnly() {

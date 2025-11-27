@@ -20,6 +20,21 @@ public class Ticket {
 	public Ticket() {
 		
 	}
+	
+	// this constructor will be used on vehicle entry
+	// the ID should be from IDGenerator
+	
+	public Ticket(Vehicle vehicle, int slotNumber) {
+		this.ID = IDGenerator.getNextTicketID();
+		this.vehicle = vehicle;
+		this.entryTime = LocalDateTime.now(); // will display current time
+		exitTime = null;
+		totalFee = 0;
+		this.slotNumber = slotNumber;
+	 	
+	}
+	
+	
 
 	public Ticket(int ID, Vehicle vehicle, LocalDateTime entryTime, LocalDateTime exitTime, double totalFee, int slotNumber) {
 		this.ID = ID;

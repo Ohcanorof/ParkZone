@@ -19,6 +19,7 @@ public class ParkingSlot {
 		this.type = type;
 	 }
 	
+	 //getters
 	public ParkingSlot(int slotNumber, boolean isOccupied, Vehicle vehicle, SlotType type) {
 		this.slotNumber = slotNumber;
 		this.isOccupied = isOccupied;
@@ -46,7 +47,7 @@ public class ParkingSlot {
 		return type;
 	}
 	
-	
+	//setters
 	public void setSlotNumber(int slotNumber) {
 		this.slotNumber = slotNumber;
 	}
@@ -54,6 +55,15 @@ public class ParkingSlot {
 	public void setOccupied(boolean isOccupied) {
 		this.isOccupied = isOccupied;
 	}
+	
+	public void occupy() {
+		this.isOccupied = true;
+	}
+	
+	public void free() {
+		this.isOccupied = false;
+	}
+	
 	
 	public void setVehicle(Vehicle vehicle) {
 		this.vehicle = vehicle;
