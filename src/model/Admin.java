@@ -5,6 +5,9 @@ import cli.Logout;
 import cli.ShowActiveTickets;
 import cli.ShowRegisteredVehicles;
 import cli.ShowSlotsStatus;
+import cli.ShowTicketsBySlotNumber;
+import cli.ShowTicketsByVehiclePlate;
+import cli.ShowTicketsHistory;
 
 public class Admin extends User {
 	
@@ -14,6 +17,9 @@ public class Admin extends User {
 				new ShowSlotsStatus (),
 				new ShowActiveTickets(),
 				new ShowRegisteredVehicles(),
+				new ShowTicketsHistory(),
+				new ShowTicketsBySlotNumber(),
+				new ShowTicketsByVehiclePlate(),
 				new Logout ()
 				
 		};
@@ -26,6 +32,9 @@ public class Admin extends User {
 				new ShowSlotsStatus (),
 				new ShowActiveTickets(),
 				new ShowRegisteredVehicles(),
+				new ShowTicketsHistory(),
+				new ShowTicketsBySlotNumber(),
+				new ShowTicketsByVehiclePlate(),
 				new Logout ()
 				
 		};

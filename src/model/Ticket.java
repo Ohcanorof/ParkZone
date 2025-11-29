@@ -1,5 +1,6 @@
 package model;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -111,6 +112,39 @@ public class Ticket {
 	public void setSlotNumber(int slotNumber) {
 		this.slotNumber = slotNumber;    
 	}
+	
+	public void exitVehicle () {
+		this.exitTime = LocalDateTime.now();
+		totalFee = vehicle.calculateFee(Duration.between(entryTime, exitTime));
+	}
+	
+	@Override
+	public String toString() {
+		String output = "/tTicket ID: " + getID() + "\n"
+		+ "\tVehicle Plate Number: " + getVehicle().getPlateNumber() + "\n"
+		+ "\tVehicle Brand: " + getVehicle().getBrand() + "\n"
+		+ "\tVehicle Model: " + getVehicle().getModel()+"\n"
+		+ "\tVehicle Color: " + getVehicle().getColor()+"\n"
+		+ "\tVehicle Owner: " + ParkingLotManager.findUserByID(getVehicle().getOwnerID()).getFullName() + "\n"
+		+ "\tEntry Date: " + getEntryDate()+"\n"
+		+ "\tEntry Time: " + getEntryTimeToString()+"\n"
+		+ "\tSlot Number: "+ getSlotNumber() + "\n"; //if it's active print only this
+
+		
+		if (exitTime == null) {
+			return output + "/t------------------------------------------------";
+		}else {
+			return output //else history
+			+ "\tExit Date: "+ getExitDate()+"\n"
+			+ "\tExit Time: "+ getExitTimeToString()+"\n"
+			+ "\tDuration in Minutes: " +
+					Duration.between(getEntryTime(), getExitTime()).toMinutes()+"\n"
+			+ "\tTotal Fee " + "$" + getTotalFee() + "\n"
+			+ "/t------------------------------------------------";
+		}
+	}
+	
+	
 	
 	
 }

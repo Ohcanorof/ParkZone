@@ -11,7 +11,7 @@ public class DataManager {
 	
 	public static ArrayList<ParkingSlot> parkingSlots;
 	public static ArrayList<Ticket> activeTickets;
-	public static ArrayList<Ticket> ticketHistory;
+	public static ArrayList<Ticket> ticketsHistory;
 	public static ArrayList<Vehicle> registeredVehicles;
 	public static ArrayList<User> users;
 

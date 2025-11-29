@@ -33,7 +33,6 @@ public class ShowRegisteredVehicles implements Actionable{
 
 	@Override
 	public boolean isAdminOnly() {
-		// TODO Auto-generated method stub
 		return false;
 	}
 

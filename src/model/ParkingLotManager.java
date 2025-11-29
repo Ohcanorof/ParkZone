@@ -28,6 +28,18 @@ public class ParkingLotManager {
 		return ticket;
 	}
 	
+	public static Ticket findActiveTicketBySlot(int slotNum) {
+		Ticket ticket = null;
+		for (Ticket t : DataManager.activeTickets) {
+			if (t.getSlotNumber() == slotNum) {
+				ticket = t;
+				break;
+			}
+		}
+		return ticket;
+	}
+	
+	
 	public static ParkingSlot findAvailableSlot(Vehicle vehicle) {
 	 // if its type is the same type we search for and is available then that's it
 	 SlotType[] types;
