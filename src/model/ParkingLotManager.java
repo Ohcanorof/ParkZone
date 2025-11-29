@@ -47,18 +47,29 @@ public class ParkingLotManager {
 	 
 	 ParkingSlot requiredSlot = null;
 	 
+	 outerLoop:
 	 for (int i = 0; i < types.length; i++) {
 		 SlotType type = types[i];
 		 for (int j = 0; j < DataManager.parkingSlots.size(); j++) {
 			 ParkingSlot slot = DataManager.parkingSlots.get(j);
 			 if (slot.getType().equals(type) && slot.isAvailable()) {
 				 requiredSlot = slot;
-				 break;
+				 break outerLoop; // this only break inner loop if we don't add outerloop after break
 			 }
 		 }
 	 }
 	 return requiredSlot;
 	}
+
+	public static User findUserByID(int ID) {
+		User user = null;
+		for (User u : DataManager.users) {
+			if (u.getID() == ID) {
+				user = u;
+				break;
+			}
+		}
+		return user;
 	
-	
+}
 }

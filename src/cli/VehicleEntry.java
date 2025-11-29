@@ -21,10 +21,10 @@ public class VehicleEntry implements Actionable {
 	// vehicle plate num.
 	@Override	
 	public void execute (Scanner s, User u) {
-		System.out.print("Enter Vehicle Plate Number: ");
 		String selected;
 		String plateNumber;
 		do {
+			System.out.print("Enter Vehicle Plate Number: ");
 			plateNumber = ConsoleInput.readString(s);
 			System. out.println("Vehicle Plate Number: "+ plateNumber);
 		do {
@@ -36,13 +36,14 @@ public class VehicleEntry implements Actionable {
 	Vehicle vehicle = ParkingLotManager.findByPlate(plateNumber);
 	
 	if (vehicle == null) {
-		// if vehicle don't exit then we will add it to our regiserted vehicle
+		// if vehicle don't exit then we will add it to our registered vehicle
+		vehicle = VehicleHandler.AddNewVehicle(s, u, plateNumber);
 	}
 	
 	ParkingSlot slot = ParkingLotManager.findAvailableSlot(vehicle);
 	if (slot == null) {
 	 // no available slots
-	 System.out.println("Sorry, currently there is no available slots");
+	 System.out.println("Sorry, no available slots");
 	 System.out.println("Please try again later");
 	 return;
 	}
@@ -54,7 +55,13 @@ public class VehicleEntry implements Actionable {
 	Ticket ticket = new Ticket(vehicle, slot.getSlotNumber());
 	DataManager.activeTickets.add(ticket);
 	System. out.println("Vehicle entered successfully");
+	System. out.println("--------------------------------");
 	System. out.println("Ticket ID: " + ticket.getID());
+	System. out.println("Slot Number: " + slot.getSlotNumber());
+	System. out.println("Slot Type: " + slot.getType());
+	System. out.println("Entry Date: " + ticket.getEntryDate());
+	System. out.println("Entry Time: " + ticket.getEntryTimeToString());
+	
 }
 
 	@Override

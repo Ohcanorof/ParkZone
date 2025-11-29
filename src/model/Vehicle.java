@@ -25,7 +25,7 @@ public abstract class Vehicle implements Payable{
 		this.color = color;
 	}
 
-	public void setBramd(String brand) {
+	public void setBrand(String brand) {
 		this.brand = brand;
 	}
 	
