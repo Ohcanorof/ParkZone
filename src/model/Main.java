@@ -12,7 +12,8 @@ public class Main {
 		ClientGUI gui = new ClientGUI();
 
 		gui.start();
-		gui.connect("10.0.0.150", port);
+		gui.connect("10.0.0.150", port); //ethernet ip10.0.0.150
+											//wifi 10.0.0.178
 	}
 
 }

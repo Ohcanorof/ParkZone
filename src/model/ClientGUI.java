@@ -1,5 +1,9 @@
 package model;
 
+import uiwindows.LoginPanel;
+import uiwindows.RegisterPanel;
+import uiwindows.SlotsPanel;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -10,6 +14,33 @@ import java.util.ArrayList;
 import java.util.List;
 
 //not complete!
+// CHANGES NEEDED
+// Removed the RolePanel.java, seemed redundant
+// clients are real now, and they can see their account info (role is hardcoded rn, chage later)
+//
+// hooking up the class functions with the gui, so now clients are real (they werent before, just a demo)
+
+// needed updates:
+//
+// Admin view: should be able to upload a map that you can click on (2 maps, one free spots, one w/ some taken spots)
+// should be able to view the reservations made by other, have the ability to remove them (notifies the user of the removal)
+// can also prompt user to pay for it (help pay for it)
+//
+// Customer view: should be able to have a dashboard, tabs on the left, view tickets, spots, make a reservation, view reservations, and end the reservation
+//
+/* what im working on right now:
+ * customer page: buttons on the left, will turn it into a menu thing later
+ * account info page working, will add a part where you can view registered vehicles in the account info maybe
+ * next is the register vehicle, and slots!
+ * 
+ * still need to add more functionallity, and the Admin side
+ * 
+ * 
+ * Working content: 
+ * login logout, account registering (admin one needs work), account info display is good
+ * overall gui is fine (for now)
+ */
+//
 
 public class ClientGUI {
 
@@ -37,10 +68,12 @@ public class ClientGUI {
 	private boolean connected;
 	private String serverHost;
 	private int serverPort;
-	private int selectedGarageId;
+	public int selectedGarageId;
 	private int selectedVehicleId;
 	private int selectedSlotId;
-	private List<ParkingSlot> slots = new ArrayList<>();
+	private String Role;
+	
+	public List<ParkingSlot> slots = new ArrayList<>();
 	
 	//-----------------------------
 	//methods
@@ -63,16 +96,15 @@ public class ClientGUI {
 			
 			cardLayout = new CardLayout();
 			root = new JPanel(cardLayout);
-			lp = new LoginPanel();
-			rp = new RegisterPanel();
-			sp = new SlotsPanel();
+			lp = new LoginPanel(this);
+			rp = new RegisterPanel(this);
+			sp = new SlotsPanel(this);
 			
 			root.add(lp, LoginPage);
 			root.add(rp, RegisterPage);
 			root.add(sp, SlotPage);
 			
 			frame.setContentPane(root);
-			showLoginPage();
 			frame.setVisible(true);
 		});
 	}
@@ -81,6 +113,11 @@ public class ClientGUI {
 	    this.serverHost = host;
 	    this.serverPort = port;
 
+	    //dont open a socket if you are already connected
+	    if(connected && events != null) {
+	    	return;
+	    }
+	    
 	    try {
 	        this.events = new EventStreamClient(host, port);
 	        this.connected = true;
@@ -93,9 +130,18 @@ public class ClientGUI {
 	public void disconnect() {
 		//close socket/event stream, cleanup session (needs to test, not done)
 		
-		if(!connected) {
+		if(!connected && events == null) {
 			return;
 		}
+		try {
+			if(events != null) {
+				events.close();//closing the socket and streams
+			}
+		}catch(Exception e) {
+			System.err.println("[ClientGUI] Error while closing connection: "+ e.getMessage());
+		}
+		
+		
 		events = null;
 		session = null;
 		connected = false;
@@ -104,19 +150,37 @@ public class ClientGUI {
 	}
 	
 	public boolean login(String email, String password) {
-	    if (!connected || events == null) {
-	        handleError("Not connected to server.");
+	    //make sure there is a connection
+		if (!connected || events == null) {
+	    	
+	    	if(serverHost == null || serverPort == 0) {
+	    		handleError("Not connected to server.");
 	        return false;
+	    	}
+	        
+	    	connect(serverHost, serverPort);
+	    	if(!connected || events == null) {
+	    		//connect showed the error so ret false
+	    		return false;
+	    	}
 	    }
 
 	    try {
-	        boolean ok = events.login(email, password);
-	        if (ok) {
-	            // TODO: when you have real login, fetch actual User from server
-	            this.currentUser = null; // placeholder
-	            this.session = null;     // or new AuthSession(...)
+	    	//ask server to log in and ret a real user
+	        User u = events.login(email, password);
+	        if (u != null) {
+	        	//assign currentUser first
+	            this.currentUser = u;
+	            //fill in account type from role if its needed
+	            if (currentUser.getAccountType() == null && Role != null) {
+	            	currentUser.setAccountType(Role);
+	            }
+	            this.session = null;//this is a place holder for the future AuthSession
+	            return true;
+	        }else {
+	        	//login failed on the SERVER side
+	        	return false;
 	        }
-	        return ok;
 	    } catch (IOException | ClassNotFoundException e) {
 	        handleError("Login error: " + e.getMessage());
 	        return false;
@@ -125,8 +189,7 @@ public class ClientGUI {
 	
 	public void logout() {
 		//TODO: notify the server/ invalidate session
-		currentUser = null;
-		session = null;
+		disconnect();
 		showLoginPage();
 	}
 	
@@ -177,6 +240,18 @@ public class ClientGUI {
 		}
 	}
 	
+	public void setRole(String role) {
+		this.Role = role;
+	}
+	
+	public User getCurrentUser() {
+		return currentUser;
+	}
+	
+	public String getRole() {
+		return Role;
+	}
+	
 	public void handleError(String message) {
 		JOptionPane.showMessageDialog(frame, message, "Error", JOptionPane.ERROR_MESSAGE);
 	}
@@ -193,204 +268,63 @@ public class ClientGUI {
 		selectedSlotId = slotId;
 	}
 	
+	
 	//-------------------------------------
 	//nav helpers
-	private void showLoginPage() {
+	public void showLoginPage() {
 		cardLayout.show(root, LoginPage);
 	}
 	
-	private void showRegisterPage() {
+	public void showRegisterPage() {
 		cardLayout.show(root, RegisterPage);
 	}
 	
 	
-	//---------------------------------------
-	//login window
-	private class LoginPanel extends JPanel{
-		private JTextField emailField;
-		private JPasswordField passwordField;
-		
-		public LoginPanel() {
-			setLayout(new BorderLayout());
-			setBorder(new EmptyBorder(20, 20, 20, 20));
-			
-			JLabel title = new JLabel("ParkZone Login", SwingConstants.CENTER);
-			title.setFont(new Font("Arial", Font.BOLD, 26));
-			add(title, BorderLayout.NORTH);
-			
-			JPanel form = new JPanel(new GridLayout(0, 1, 10, 10));
-			form.setBorder(new EmptyBorder(40, 220, 40, 220));
-			
-			emailField = new JTextField();
-			passwordField = new JPasswordField();
-			
-			form.add(new JLabel("Email:"));
-			form.add(emailField);
-			
-			form.add(new JLabel("Password:"));
-			form.add(passwordField);
-			
-			add(form, BorderLayout.CENTER);
-			
-			JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-			
-			JButton loginBtn = new JButton("Login");
-			JButton registerBtn= new JButton("Create Account");
-			
-			loginBtn.addActionListener(e ->{
-				String email = emailField.getText();
-				String password = new String(passwordField.getPassword());
-				
-				if(login(email, password)) {
-					//show slots list after success
-					showSlots(0, "ALL");//default for now
-				}
-				else {
-					handleError("Login failed. Check your credentials.");
-				}
-			});
-			
-			registerBtn.addActionListener(e -> showRegisterPage());
-			
-			buttons.add(loginBtn);
-			buttons.add(registerBtn);
-			add(buttons, BorderLayout.SOUTH);
-			
-			
-		}
+	
+	public void startAdminLogin() {
+		Role = "ADMIN";
+		lp.setRole(Role);
+		showLoginPage();
 	}
 	
-	//------------------------------------------
-	//register window
-	private class RegisterPanel extends JPanel{
-		private JTextField firstNameField;
-		private JTextField lastNameField;
-		private JTextField usernameField;
-		private JTextField emailField;
-		private JPasswordField passwordField;//might change this to JTextField
-		
-		public RegisterPanel() {
-			setLayout(new BorderLayout());
-			setBorder(new EmptyBorder(20,20,20,20));
-			
-			JLabel title = new JLabel("Create Account", SwingConstants.CENTER);
-			title.setFont(new Font("Arial", Font.BOLD, 26));
-			add(title, BorderLayout.NORTH);
-			
-			JPanel form = new JPanel(new GridLayout(0, 1, 10, 10));
-			form.setBorder(new EmptyBorder(20, 220, 20, 220));
-			
-			firstNameField = new JTextField();
-			lastNameField = new JTextField();
-			usernameField = new JTextField();
-			emailField = new JTextField();
-			passwordField = new JPasswordField();
-			
-			form.add(new JLabel("First Name:"));
-			form.add(firstNameField);
-			
-			form.add(new JLabel("Last Name:"));
-			form.add(lastNameField);
-			
-			form.add(new JLabel("Username:"));
-			form.add(usernameField);
-			
-			form.add(new JLabel("Email:"));
-			form.add(emailField);
-			
-			form.add(new JLabel("Password:"));
-			form.add(passwordField);
-			
-			add(form, BorderLayout.CENTER);
-			
-			JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-			JButton createBtn = new JButton("Create Account");
-			JButton backBtn = new JButton("Back to Login");
-			
-			createBtn.addActionListener(e ->{
-				//TODO: (server): ParkingSystem.createAccount(new Client(...)) send create acc req to the server
-				//simulating success if the fields arent empty
-				if (firstNameField.getText().isBlank() ||
-	                    lastNameField.getText().isBlank() ||
-	                    usernameField.getText().isBlank() ||
-	                    emailField.getText().isBlank() ||
-	                    new String(passwordField.getPassword()).isBlank()) {
-
-					handleError("Please fill in all fields.");
-	                return;
-				}
-				
-				//pretending the acc creation worked
-				JOptionPane.showMessageDialog(frame, "Account created! Please login.", "Success", JOptionPane.INFORMATION_MESSAGE);
-				showLoginPage();
-				
-			});
-			
-			backBtn.addActionListener(e -> showLoginPage());
-			buttons.add(createBtn);
-			buttons.add(backBtn);
-			add(buttons, BorderLayout.SOUTH);
-
-		}
+	public void startCustomerLogin() {
+		Role = "CUSTOMER";
+		lp.setRole(Role);
+		showLoginPage();
+	}
+	public int getSelectedGarageId() {
+		return selectedGarageId;
 	}
 	
-	
-	//-----------------------------------------------------
-	//window for parking slots
-	private class SlotsPanel extends JPanel{
-		private DefaultListModel<String> slotModel;
-		private JList<String> slotList;
-		
-		public SlotsPanel() {
-			setLayout(new BorderLayout());
-			setBorder(new EmptyBorder(20,20,20,20));
-			
-			JLabel title = new JLabel("Available Parking Slots", SwingConstants.CENTER);
-			title.setFont(new Font("Arial", Font.BOLD, 24));
-			add(title, BorderLayout.NORTH);
-			
-			slotModel = new DefaultListModel<>();
-			slotList = new JList<>(slotModel);
-			
-			add(new JScrollPane(slotList), BorderLayout.CENTER);
-			
-			JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-			JButton refreshBtn = new JButton("Refresh");
-			JButton logoutBtn = new JButton("Logout");
-			
-			refreshBtn.addActionListener(e -> {
-				slots = refreshSlots(selectedGarageId, "ALL");
-				loadSlots(slots);
-			});
-			logoutBtn.addActionListener(e -> logout());
-			
-			buttons.add(refreshBtn);
-			buttons.add(logoutBtn);
-			add(buttons, BorderLayout.SOUTH);
+	//GUI WINDOWS NOW IN THEIR OWN PACKAGE
 
-			}
-
-		//function to load the slot list into the GUI (temp, will be changed later!)
-		public void loadSlots(List<ParkingSlot> slots) {
-			slotModel.clear();
-			
-			if(slots == null || slots.isEmpty()) {
-				slotModel.addElement("(No slots available)");
-				return;
-			}
-			for(ParkingSlot s : slots) {
-				String label = "Slot #" + s.getSlotID() + " | Occupied: " + s.isOccupied();
-				slotModel.addElement(label);
-			}
-		}
-	}
 	
 	//placeholders (might have to add a class or two)
 	class AuthSession{
 		//addsession toke, userId, expiry, etc
 	}
 	
-
+	public boolean createAccount(String firstName, String lastName, String email, String password, String accountType) {
+		if(!connected || events == null) {
+			if(serverHost == null || serverPort == 0) {
+				handleError("Not connected to server.");
+				return false;
+			}
+			connect(serverHost, serverPort);
+			if(!connected || events == null) {
+				return false;
+			}
+		}
+		
+		try {
+			return events.registerAccount(firstName, lastName, email, password, accountType);
+		}catch (IOException | ClassNotFoundException e) {
+			handleError("Account creation error: " + e.getMessage());
+			return false;
+		}
+		
+		
+	}
 	
 
 }

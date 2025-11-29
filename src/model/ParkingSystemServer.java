@@ -118,6 +118,9 @@ public class ParkingSystemServer {
         return new ClientHandler(this, socket, clientId);
     }
 	
+	public ParkingSystem getParkingSystem() {
+		return parkingSystem;
+	}
 	/** Send a message to one specific client id */
     public void sendTo(String id, Message msg) {
         ClientHandler handler = clientsById.get(id);
