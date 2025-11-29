@@ -131,9 +131,10 @@ public class ClientGUI {
 	}
 	
 	public List<ParkingSlot> refreshSlots(int garageId, String type){
-		//TODO: server side SlotCatalog.findAvailable(garageId, type)
-		//for now it just rets the current list (if there is one)
-		return slots;
+	    // Get all slots from the singleton ParkingSystem
+	    ParkingSystem ps = ParkingSystem.getInstance();
+	    this.slots = new ArrayList<>(ps.getSlots());
+	    return slots;
 	}
 	
 	public void showSlots(int garageId, String type) {
