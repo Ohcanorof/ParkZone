@@ -64,6 +64,18 @@ public class ParkingSystem {
     	return ticket;
     }
     
+    public Ticket issueTicket(Vehicle vehicle, ParkingSlot slot, LocalDateTime entryTime) {
+        if (vehicle == null || slot == null || slot.isOccupied()) {
+            return null;
+        }
+        // assign the vehicle to the slot
+        slot.assignVehicle(vehicle);
+        // create ticket with the chosen entryTime
+        Ticket ticket = new Ticket(vehicle, slot, entryTime);
+        addTicket(ticket);
+        return ticket;
+    }
+    
     //this function will end the parking for a ticket with its ticketID, it closes it
     //and then it calculates the fee
     public void endParking(int ticketID) {
@@ -167,7 +179,8 @@ public class ParkingSystem {
     	//implement later
     }
     
-    //helper function for ticketID
+    //helper functions
+    //ticket ID
     private Ticket findTicketById(int ticketID) {
     	synchronized(tickets){
     		for(Ticket t: tickets) {
@@ -176,6 +189,19 @@ public class ParkingSystem {
     			}
     		}
     	}return null;
+    }
+    //remove slots
+    public boolean removeSlotById(int slotID) {
+        synchronized (slots) {
+            for (int i = 0; i < slots.size(); i++) {
+                ParkingSlot s = slots.get(i);
+                if (s != null && s.getSlotID() == slotID) {
+                    slots.remove(i);
+                    return true;
+                }
+            }
+        }
+        return false;
     }
     
     

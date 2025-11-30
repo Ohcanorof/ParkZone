@@ -17,6 +17,7 @@ import java.awt.*;
 		private JPasswordField passwordField;//might change this to JTextField
 		private JComboBox<String> roleBox;
 		
+		//This is the method for the account creation window
 		public RegisterPanel(ClientGUI gui) {
 	        this.gui = gui;
 			setLayout(new BorderLayout());
@@ -34,8 +35,10 @@ import java.awt.*;
 			usernameField = new JTextField();
 			emailField = new JTextField();
 			passwordField = new JPasswordField();
+			//drop down menu
 			roleBox = new JComboBox<>(new String[] {"Customer", "Admin"  });
 			
+			//form fields
 			form.add(new JLabel("First Name:"));
 			form.add(firstNameField);
 			
@@ -61,26 +64,25 @@ import java.awt.*;
 			JButton backBtn = new JButton("Back");
 			
 			createBtn.addActionListener(e ->{
-				//TODO: (server): ParkingSystem.createAccount(new Client(...)) send create acc req to the server
-				//simulating success if the fields arent empty
 				String firstName = firstNameField.getText().trim();
 			    String lastName  = lastNameField.getText().trim();
-			    String username  = usernameField.getText().trim(); // not used yet on server
+			    String username  = usernameField.getText().trim(); //could use username instead of email for login
 			    String email     = emailField.getText().trim();
 			    String password  = new String(passwordField.getPassword()).trim();
 			    
-				if (firstNameField.getText().isBlank() ||
-	                    lastNameField.getText().isBlank() ||
-	                    usernameField.getText().isBlank() ||
-	                    emailField.getText().isBlank() ||
-	                    new String(passwordField.getPassword()).isBlank()) {
-
+				if (firstName.isBlank() || lastName.isBlank() || username.isBlank() || email.isBlank() || password.isBlank()) {
 					gui.handleError("Please fill in all boxes!");
 	                return;
 				}
 				
-				// For now: treat all signups as CUSTOMER, fixing a bug
-			    String accountType = "CUSTOMER";
+			    String selectedRole = (String) roleBox.getSelectedItem();
+				String accountType;
+				
+				if (selectedRole != null) {
+					accountType = selectedRole.toUpperCase();
+				}else {
+					accountType = "CUSTOMER";
+				}
 				boolean ok = gui.createAccount(firstName, lastName, email, password, accountType);
 				
 				if(ok) {

@@ -3,10 +3,12 @@ package model;
 import uiwindows.LoginPanel;
 import uiwindows.RegisterPanel;
 import uiwindows.SlotsPanel;
-
+import model.ParkingSlot;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import model.Vehicle;
+import model.Message;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
@@ -29,16 +31,19 @@ import java.util.List;
 // Customer view: should be able to have a dashboard, tabs on the left, view tickets, spots, make a reservation, view reservations, and end the reservation
 //
 /* what im working on right now:
- * customer page: buttons on the left, will turn it into a menu thing later
- * account info page working, will add a part where you can view registered vehicles in the account info maybe
- * next is the register vehicle, and slots!
+ * Clients should be able to see the color change in slots when another customer reserves a spot.
+ * Admins should be able to set slots with certain types view all current reservations in the system,
+ * might let admins click on the slots themselves to allow for type setting.
  * 
- * still need to add more functionallity, and the Admin side
+ * Slot map should change colors when they are available or not, slots should show the type when cliking on the slot to reserve it,
+ *  Filter slots doesnt work yet,
+ * 
  * 
  * 
  * Working content: 
- * login logout, account registering (admin one needs work), account info display is good
- * overall gui is fine (for now)
+ * customers can login register vechilces, view the slots, register a vehicle, reserve a spot, \
+ * veiw their reservations, and pay them
+ * Admins can add/remove parking slots live, set pricing on certain spots.
  */
 //
 
@@ -194,16 +199,39 @@ public class ClientGUI {
 	}
 	
 	public List<ParkingSlot> refreshSlots(int garageId, String type){
-		//TODO: server side SlotCatalog.findAvailable(garageId, type)
-		//for now it just rets the current list (if there is one)
-		return slots;
+		 if (!connected || events == null) {
+		        if (serverHost == null || serverPort == 0) {
+		            handleError("Not connected to server.");
+		            return slots;
+		        }
+		        connect(serverHost, serverPort);
+		        if (!connected || events == null) {
+		            return slots;
+		        }
+		    }
+
+		    try {
+		        List<ParkingSlot> fromServer = events.fetchSlotsFromServer(garageId, type);
+		        this.slots = new ArrayList<>(fromServer);
+		        return this.slots;
+		    } catch (IOException | ClassNotFoundException e) {
+		        handleError("Error fetching slots: " + e.getMessage());
+		        return slots;
+		    }
 	}
 	
 	public void showSlots(int garageId, String type) {
 		selectedGarageId = garageId;
 		slots = refreshSlots(garageId, type);
 		sp.loadSlots(slots);
+		sp.updateRoleUI();
 		cardLayout.show(root, SlotPage);
+	}
+	
+	public void openAdminSlotConfigDialog(ParkingSlot slot) {
+	    if (sp != null && slot != null) {
+	        sp.openAdminSlotConfigDialog(slot);
+	    }
 	}
 	
 	public Ticket issueTicket(int vehicleId, int slotId) {
@@ -215,6 +243,12 @@ public class ClientGUI {
 		selectedVehicleId = vehicleId;
 		selectedSlotId = slotId;
 		return null;
+	}
+	
+	public void openReservationDialog(ParkingSlot slot) {
+		if(sp != null && slot != null) {
+			sp.openReservationDialog(slot);
+		}
 	}
 	
 	public Ticket closeTicket(int ticketId) {
@@ -296,8 +330,21 @@ public class ClientGUI {
 		return selectedGarageId;
 	}
 	
-	//GUI WINDOWS NOW IN THEIR OWN PACKAGE
+	// Reservation helper function
+	public void notifyServerSlotReserved(int slotId, Vehicle vehicle) {
+	    String plate = (vehicle != null) ? vehicle.getPlateNumber() : null;
 
+	    try {
+	        boolean ok = events.reserveSlotOnServer(slotId, plate);
+	        if (!ok) {
+	            System.out.println("[ClientGUI] Server rejected reservation for slot " + slotId);
+	        }
+	    } catch (IOException | ClassNotFoundException ex) {
+	        ex.printStackTrace();
+	        // could also do:
+	        // JOptionPane.showMessageDialog(null,"Failed to notify server about reservation:\n" + ex.getMessage(),"Network Error",JOptionPane.ERROR_MESSAGE);
+	    }
+	}
 	
 	//placeholders (might have to add a class or two)
 	class AuthSession{
@@ -325,6 +372,46 @@ public class ClientGUI {
 		
 		
 	}
+	//helper func for slots
+	public boolean addSlotsOnServer(int count) {
+	    if (!connected || events == null) {
+	        if (serverHost == null || serverPort == 0) {
+	            handleError("Not connected to server.");
+	            return false;
+	        }
+	        connect(serverHost, serverPort);
+	        if (!connected || events == null) {
+	            return false;
+	        }
+	    }
+
+	    try {
+	        return events.addSlotsOnServer(count);
+	    } catch (IOException | ClassNotFoundException e) {
+	        handleError("Error adding slots: " + e.getMessage());
+	        return false;
+	    }
+	}
 	
+	//gui func for removing slots
+	public boolean removeSlot(int slotId) {
+	    if (!connected || events == null) {
+	        if (serverHost == null || serverPort == 0) {
+	            handleError("Not connected to server.");
+	            return false;
+	        }
+	        connect(serverHost, serverPort);
+	        if (!connected || events == null) {
+	            return false;
+	        }
+	    }
+
+	    try {
+	        return events.removeSlot(slotId);
+	    } catch (IOException | ClassNotFoundException e) {
+	        handleError("Remove slot error: " + e.getMessage());
+	        return false;
+	    }
+	}
 
 }

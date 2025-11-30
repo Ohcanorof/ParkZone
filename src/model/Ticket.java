@@ -14,36 +14,41 @@ public class Ticket {
 	private Vehicle vehicle;
 	private LocalDateTime entryTime;
 	private LocalDateTime exitTime;
+	//reservation attributes
+	private int reservedMinutes;
+	private double estimatedFee;
+	//payment attributes:
+	private boolean paid;
+	private String paymentMethod;
 
 
 	//constructor
-	public Ticket(int ticketID, Vehicle vehicle, ParkingSlot slot, LocalDateTime entryTime){
+	public Ticket(int ticketID, Vehicle vehicle, ParkingSlot slot, LocalDateTime entryTim){
 		this.ticketID = generateNextId();
-		this.vehicle = vehicle;
-		this.slot = slot;
-		this.isActive = true;
-		if (entryTime == null){
-			entryTime = LocalDateTime.now();
-		}
-		else{
-			this.entryTime = entryTime;
-		}
-		this.totalFee = 0.0;
+	    this.vehicle = vehicle;
+	    this.slot = slot;
+	    this.isActive = true;
+	    //might change this
+	    this.entryTime = (entryTime != null) ? entryTime : LocalDateTime.now();
+	    this.totalFee = 0.0;
+	    this.reservedMinutes = 0;
+	    this.estimatedFee = 0.0;
+	    this.paid = false;
+	    this.paymentMethod = null;
 	}
 	
 	//constructor so that entryTime is defualted to curr time (now)
 	public Ticket(Vehicle vehicle, ParkingSlot slot, LocalDateTime entryTime) {
-	    this.ticketID = generateNextId();              
+		this.ticketID = generateNextId();
 	    this.vehicle = vehicle;
 	    this.slot = slot;
 	    this.isActive = true;
-	    if (entryTime == null){
-			entryTime = LocalDateTime.now();
-		}
-		else{
-			this.entryTime = entryTime;
-		}
+	    this.entryTime = (entryTime != null) ? entryTime : LocalDateTime.now();
 	    this.totalFee = 0.0;
+	    this.reservedMinutes = 0;
+	    this.estimatedFee = 0.0;
+	    this.paid = false;
+	    this.paymentMethod = null;
 	}
 
 	// class functions
@@ -54,7 +59,7 @@ public class Ticket {
 	
 	//function for ticket closing
 	public void closeTicket(LocalDateTime exitTime) {
-		if (isActive = false) {
+		if (!isActive) {
 			return;// ticket closed
 		}
 		//if an exit time is null, set it to current time, then we close
@@ -121,6 +126,22 @@ public class Ticket {
 	public boolean isActive() {
 		return isActive;
 	}
+	
+	public int getReservedMinutes() {
+		return reservedMinutes;
+	}
+	
+	public double getEstimatedFee() {
+		return estimatedFee;
+	}
+	
+	public boolean isPaid() {
+		return paid;
+	}
+	
+	public String getPaymentMethod() {
+		return paymentMethod;
+	}
 
 	// setters
 	public void setTicketID(int ticketID) {
@@ -151,6 +172,22 @@ public class Ticket {
 		this.isActive = active;
 	}
 	
+	public void setReservedMinutes(int reservedMinutes) {
+	    this.reservedMinutes = Math.max(reservedMinutes, 0);
+	}
+
+	public void setEstimatedFee(double estimatedFee) {
+	    this.estimatedFee = Math.max(estimatedFee, 0.0);
+	}
+
+	public void setPaid(boolean paid) {
+	    this.paid = paid;
+	}
+
+	public void setPaymentMethod(String paymentMethod) {
+	    this.paymentMethod = paymentMethod;
+	}
+	
 	//helper function for the plate+id ticket id format
 	//returns the ticketID as plate+ ticket id, ex: plate# is 112ad12 
 	///and the ticketID (ticket number, each time a ticket is made, it increments by one, so each ticket is different, even if it has the same plate number)
@@ -167,6 +204,20 @@ public class Ticket {
 		return plate + ticketID;
 	}
 
+	//helper function for payments
+	public void pay(String method) {
+	    // if still active and no exit time, treat payment as "leaving now"
+	    if (isActive) {
+	        closeTicket(LocalDateTime.now());
+	    } else if (totalFee == 0.0) {
+	        // if we somehow closed without computing fee
+	        totalFee = generateFee();
+	    }
+	    this.paid = true;
+	    this.paymentMethod = method;
+	}
+	
+	//ticket toString
 	@Override
 	public String toString() {
 		return "Ticket{" +
@@ -177,7 +228,10 @@ public class Ticket {
                 ", entryTime=" + entryTime +
                 ", exitTime=" + exitTime +
                 ", totalFee=" + totalFee +
+                ", estimatedFee=" + estimatedFee +
                 ", isActive=" + isActive +
+                ", paid=" + paid +
+                ", paymentMethod=" + paymentMethod +
                 '}';
 	}
 }
