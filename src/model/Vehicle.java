@@ -1,7 +1,5 @@
 package model;
 
-import java.time.Duration;
-
 /*
  * Vehicle will be abstract class and every Vehicle type will inherit it
  */
@@ -26,8 +24,7 @@ public abstract class Vehicle implements Payable{
 	}
 	
 	//methods:
-	// Jose's original working method - used by Ticket.java
-	public double calculateFee(int durationMinutes) {
+	public  double calculateFee(int durationMinutes) {
 		//can adjust later as needed
 		double ratePerHour;
 		if(type == null) {
@@ -58,16 +55,6 @@ public abstract class Vehicle implements Payable{
 		return ratePerHour * hours;
 	}
 	
-	// Payable interface implementation - delegates to Jose's method
-	@Override
-	public double calculateFee(Duration duration) {
-		if (duration == null) {
-			return 0.0;
-		}
-		long minutes = duration.toMinutes();
-		return calculateFee((int) minutes);
-	}
-	
 	
 	//SETTERS
 	public void setPlateNumber(String plateNumber) {
@@ -82,7 +69,7 @@ public abstract class Vehicle implements Payable{
 		this.color = color;
 	}
 
-	public void setBrand(String brand) {
+	public void setBramd(String brand) {
 		this.brand = brand;
 	}
 	

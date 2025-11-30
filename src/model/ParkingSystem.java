@@ -48,6 +48,9 @@ public class ParkingSystem {
     		return;
     	}
     	user.registerVehicle(vehicle);
+    	client.registerVehicle(vehicle);
+        registeredVehicles.add(vehicle);
+        System.out.println("[ParkingSystem] Registered vehicle: " + vehicle.getPlateNumber() + " for client " + client.getID());
     }
 
     //Ticket functions
@@ -177,6 +180,5 @@ public class ParkingSystem {
     		}
     	}return null;
     }
-    
-    
+  
 }

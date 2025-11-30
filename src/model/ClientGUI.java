@@ -357,16 +357,24 @@ public class ClientGUI {
 			
 			JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
 			JButton refreshBtn = new JButton("Refresh");
+			
+			JButton entryBtn = new JButton("Vehicle Entry");  // ✨ NEW
+			JButton exitBtn = new JButton("Vehicle Exit");    // ✨ NEW
 			JButton logoutBtn = new JButton("Logout");
 			
 			refreshBtn.addActionListener(e -> {
 				slots = refreshSlots(selectedGarageId, "ALL");
 				loadSlots(slots);
 			});
+			entryBtn.addActionListener(e -> showEntryDialog());
+			exitBtn.addActionListener(e -> showExitDialog());
+			
 			logoutBtn.addActionListener(e -> logout());
 			
 			buttons.add(refreshBtn);
 			buttons.add(logoutBtn);
+			buttons.add(entryBtn);   // ✨ NEW
+			buttons.add(exitBtn);    // ✨ NEW
 			add(buttons, BorderLayout.SOUTH);
 
 			}
@@ -383,6 +391,166 @@ public class ClientGUI {
 				String label = "Slot #" + s.getSlotID() + " | Occupied: " + s.isOccupied();
 				slotModel.addElement(label);
 			}
+		}
+
+		private void showEntryDialog() {
+		    ParkingSystem ps = ParkingSystem.getInstance();
+		    
+		    String plate = JOptionPane.showInputDialog(frame, 
+		        "Enter vehicle plate number:\n(Try: ABC123, XYZ789, or BIKE01)", 
+		        "Vehicle Entry", 
+		        JOptionPane.PLAIN_MESSAGE);
+		    
+		    if (plate == null || plate.trim().isEmpty()) {
+		        return;
+		    }
+		    
+		    plate = plate.trim().toUpperCase();
+		    
+		    // Find vehicle
+		    Vehicle vehicle = null;
+		    for (User u : ps.getUsers()) {
+		        if (u instanceof Client) {
+		            Client c = (Client) u;
+		            for (Vehicle v : c.getRegisteredVehicles()) {
+		                if (v.getPlateNumber().equalsIgnoreCase(plate)) {
+		                    vehicle = v;
+		                    break;
+		                }
+		            }
+		            if (vehicle != null) break;
+		        }
+		    }
+		    
+		    if (vehicle == null) {
+		        handleError("Vehicle not found: " + plate + "\nPlease use ABC123, XYZ789, or BIKE01");
+		        return;
+		    }
+		    
+		    // Find available slot
+		    ParkingSlot availableSlot = null;
+		    for (ParkingSlot slot : ps.getSlots()) {
+		        if (!slot.isOccupied()) {
+		            availableSlot = slot;
+		            break;
+		        }
+		    }
+		    
+		    if (availableSlot == null) {
+		        handleError("No available parking slots!");
+		        return;
+		    }
+		    
+		    // Issue ticket
+		    try {
+		        Ticket ticket = ps.issueTicket(vehicle, availableSlot);
+		        
+		        String message = String.format(
+		            "✓ Vehicle Parked Successfully!\n\n" +
+		            "Ticket ID: %s\n" +
+		            "Plate: %s\n" +
+		            "Vehicle: %s %s\n" +
+		            "Slot: #%d\n" +
+		            "Entry Time: %s",
+		            ticket.getTicketIDCode(),
+		            vehicle.getPlateNumber(),
+		            vehicle.getBrand(),
+		            vehicle.getModel(),
+		            availableSlot.getSlotID(),
+		            ticket.getEntryTime().toString()
+		        );
+		        
+		        JOptionPane.showMessageDialog(frame, message, "Parking Confirmed", JOptionPane.INFORMATION_MESSAGE);
+		        
+		        // Refresh
+		        slots = refreshSlots(selectedGarageId, "ALL");
+		        loadSlots(slots);
+		        
+		    } catch (Exception e) {
+		        handleError("Error parking vehicle: " + e.getMessage());
+		        e.printStackTrace();
+		    }
+		}
+
+		private void showExitDialog() {
+		    ParkingSystem ps = ParkingSystem.getInstance();
+		    
+		    String input = JOptionPane.showInputDialog(frame,
+		        "Enter ticket ID or plate number:",
+		        "Vehicle Exit",
+		        JOptionPane.PLAIN_MESSAGE);
+		    
+		    if (input == null || input.trim().isEmpty()) {
+		        return;
+		    }
+		    
+		    input = input.trim();
+		    Ticket ticket = null;
+		    
+		    // Find by ticket ID
+		    for (Ticket t : ps.getTickets()) {
+		        if (t.isActive() && t.getTicketIDCode().equalsIgnoreCase(input)) {
+		            ticket = t;
+		            break;
+		        }
+		    }
+		    
+		    // If not found, search by plate
+		    if (ticket == null) {
+		        for (Ticket t : ps.getTickets()) {
+		            if (t.isActive() && 
+		                t.getVehicle().getPlateNumber().equalsIgnoreCase(input)) {
+		                ticket = t;
+		                break;
+		            }
+		        }
+		    }
+		    
+		    if (ticket == null) {
+		        handleError("No active parking session found for: " + input);
+		        return;
+		    }
+		    
+		    // End parking
+		    try {
+		        ps.endParking(ticket.getTicketID());
+		        
+		        int duration = ticket.calculateDuration();
+		        double fee = ticket.getTotalFee();
+		        
+		        String message = String.format(
+		            "✓ Vehicle Exit Processed\n\n" +
+		            "Ticket ID: %s\n" +
+		            "Plate: %s\n" +
+		            "Vehicle: %s %s\n" +
+		            "Slot: #%d\n\n" +
+		            "Entry: %s\n" +
+		            "Exit: %s\n" +
+		            "Duration: %d minutes\n\n" +
+		            "═══════════════════\n" +
+		            "TOTAL FEE: $%.2f\n" +
+		            "═══════════════════",
+		            ticket.getTicketIDCode(),
+		            ticket.getVehicle().getPlateNumber(),
+		            ticket.getVehicle().getBrand(),
+		            ticket.getVehicle().getModel(),
+		            ticket.getSlot().getSlotID(),
+		            ticket.getEntryTime().toString(),
+		            ticket.getExitTime().toString(),
+		            duration,
+		            fee
+		        );
+		        
+		        JOptionPane.showMessageDialog(frame, message, "Payment Due", JOptionPane.INFORMATION_MESSAGE);
+		        
+		        // Refresh
+		        slots = refreshSlots(selectedGarageId, "ALL");
+		        loadSlots(slots);
+		        
+		    } catch (Exception e) {
+		        handleError("Error processing exit: " + e.getMessage());
+		        e.printStackTrace();
+		    }
 		}
 	}
 	
