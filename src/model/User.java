@@ -1,4 +1,4 @@
- package model;
+package model;
 
 public abstract class User {
 	
@@ -7,22 +7,34 @@ public abstract class User {
 	private String lastName;
 	private String email;
 	private String password; //we can also add phone number if we want --> if we do we also need to make getters and setters for them too
+	private String AccountType;// user can be Admin, Customer, or Operator
 	protected Actionable[] actions;
 	
-	//Setters
-	public User() {
+	//class methods
+	
+	public void login(String email, String password) {
 		
 	}
 	
+	public void logout() {
+		
+	}
+	
+	
+	//constructors
+	public User() {
+		
+	}
 	public User(int ID, String firstName, String lastName, String email, String password) {
 		this.ID = ID;
 		this.firstName = firstName;
 		this.lastName = lastName;
 		this.email = email;
 		this.password = password;
+		this.AccountType = null; 
 	}
 	
-	
+	//Setters
 	public void setID(int ID) {
 		this.ID = ID;
 	}
@@ -41,6 +53,14 @@ public abstract class User {
 	
 	public void setPassword(String password) {
 		this.password = password;
+	}
+
+	public void setAccountType (String accountType) {
+		this.AccountType = accountType;
+	}
+	
+	public void setActions(Actionable[] actions) {
+		this.actions = actions;
 	}
 	
 	
@@ -69,12 +89,26 @@ public abstract class User {
 	public String getPassword() {
 		return password;
 	}
+
+	public String getAccountType(){
+		return AccountType;
+	}
 	
 	public Actionable[] getActions() {
 		return actions;
 	}
 	
+	//extra function to check passwords
+	public boolean checkPassword(String inputPassword) {
+		//passwords cant be null and MUST equal the inputed password.
+		return password != null && password.equals(inputPassword);
+	}
 	
+	//extra function for user info
+	@Override
+	public String toString() {
+		return "User{" + "ID=" + ID + ", firstName='" + firstName + '\'' + ", lastName='" + lastName + '\'' + ", email='" + email + '\'' + ", accountType='" + AccountType + '\'' + '}';
+	}
 	
 
 	

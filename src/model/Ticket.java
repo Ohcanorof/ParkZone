@@ -1,61 +1,116 @@
 package model;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.time.Duration;
+
 
 public class Ticket {
-	
-	private int ID;
+
+	private static int nextId = 1;
+	private int ticketID;
+	private double totalFee;
+	private ParkingSlot slot;
+	private boolean isActive;
 	private Vehicle vehicle;
 	private LocalDateTime entryTime;
 	private LocalDateTime exitTime;
-	private double totalFee;
-	private int slotNumber;
-	
-	public static DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy"); // "day/month/year" eg. 12/11/2025
-	public static DateTimeFormatter timeFormat = DateTimeFormatter.ofPattern("hh:mm"); 		// "hour:min" eg. 1:15
+	//reservation attributes
+	private int reservedMinutes;
+	private double estimatedFee;
+	//payment attributes:
+	private boolean paid;
+	private String paymentMethod;
 
-	
-	
-	public Ticket() {
-		
+
+	//constructor
+	public Ticket(int ticketID, Vehicle vehicle, ParkingSlot slot, LocalDateTime entryTim){
+		this.ticketID = generateNextId();
+	    this.vehicle = vehicle;
+	    this.slot = slot;
+	    this.isActive = true;
+	    //might change this
+	    this.entryTime = (entryTime != null) ? entryTime : LocalDateTime.now();
+	    this.totalFee = 0.0;
+	    this.reservedMinutes = 0;
+	    this.estimatedFee = 0.0;
+	    this.paid = false;
+	    this.paymentMethod = null;
 	}
 	
-	// this constructor will be used on vehicle entry
-	// the ID should be from IDGenerator
-	
-	public Ticket(Vehicle vehicle, int slotNumber) {
-		this.ID = IDGenerator.getNextTicketID();
-		this.vehicle = vehicle;
-		this.entryTime = LocalDateTime.now(); // will display current time
-		exitTime = null;
-		totalFee = 0;
-		this.slotNumber = slotNumber;
-	 	
+	//constructor so that entryTime is defualted to curr time (now)
+	public Ticket(Vehicle vehicle, ParkingSlot slot, LocalDateTime entryTime) {
+		this.ticketID = generateNextId();
+	    this.vehicle = vehicle;
+	    this.slot = slot;
+	    this.isActive = true;
+	    this.entryTime = (entryTime != null) ? entryTime : LocalDateTime.now();
+	    this.totalFee = 0.0;
+	    this.reservedMinutes = 0;
+	    this.estimatedFee = 0.0;
+	    this.paid = false;
+	    this.paymentMethod = null;
+	}
+
+	// class functions
+	//id generation
+	private static synchronized int generateNextId() {
+		return nextId++;
 	}
 	
-	
-
-	public Ticket(int ID, Vehicle vehicle, LocalDateTime entryTime, LocalDateTime exitTime, double totalFee, int slotNumber) {
-		this.ID = ID;
-		this.vehicle = vehicle;
-		this.entryTime = entryTime;
+	//function for ticket closing
+	public void closeTicket(LocalDateTime exitTime) {
+		if (!isActive) {
+			return;// ticket closed
+		}
+		//if an exit time is null, set it to current time, then we close
+		if (exitTime == null) {
+			exitTime = LocalDateTime.now();
+		}
 		this.exitTime = exitTime;
-		this.totalFee = totalFee;
-		this.slotNumber = slotNumber;
+		this.isActive = false;
+		this.totalFee = generateFee();
+	}
+
+	//calculating duration of stay 
+	public int calculateDuration() {
+		//change this!
+		LocalDateTime end;
+		if(exitTime != null) {
+			end = exitTime;
+		}
+		else {
+			end = LocalDateTime.now();
+		}
 		
+		Duration duration = Duration.between(entryTime, end);
+		return (int) duration.toMinutes();
 	}
-	
-	//Getters
-	public int getID() {
-		return ID;
+
+	public double generateFee() {
+		// rate for hour adjust later?
+		if(vehicle == null) {
+			totalFee = 0.0;
+			return totalFee;
+		}
+		int durationMinutes = calculateDuration();
+
+		totalFee = vehicle.calculateFee(durationMinutes);
+		return totalFee;
 	}
-	
+
+	// getters
+	public int getTicketID() {
+		return ticketID;
+	}
+
 	public Vehicle getVehicle() {
 		return vehicle;
 	}
-	
+
+	public ParkingSlot getSlot() {
+		return slot;
+	}
+
 	public LocalDateTime getEntryTime() {
 		return entryTime;
 	}
@@ -63,88 +118,120 @@ public class Ticket {
 	public LocalDateTime getExitTime() {
 		return exitTime;
 	}
-	
-	public String getEntryDate() {
-		return dateFormat.format(entryTime);
-	}
-	
-	public String getEntryTimeToString() {
-		return timeFormat.format(entryTime);
-	}
-	
-	public String getExitDate() {
-		return dateFormat.format(exitTime);
-	}
-	
-	public String getExitTimeToString() {
-		return timeFormat.format(exitTime);
-	}
-	
+
 	public double getTotalFee() {
 		return totalFee;
 	}
-	
-	public int getSlotNumber() {
-		return slotNumber;
+
+	public boolean isActive() {
+		return isActive;
 	}
 	
-	//Setters
-	public void setID(int ID) {
-		this.ID = ID;
+	public int getReservedMinutes() {
+		return reservedMinutes;
 	}
 	
+	public double getEstimatedFee() {
+		return estimatedFee;
+	}
+	
+	public boolean isPaid() {
+		return paid;
+	}
+	
+	public String getPaymentMethod() {
+		return paymentMethod;
+	}
+
+	// setters
+	public void setTicketID(int ticketID) {
+		this.ticketID = ticketID;
+	}
+
 	public void setVehicle(Vehicle vehicle) {
 		this.vehicle = vehicle;
 	}
-	
+
+	public void setSlot(ParkingSlot slot) {
+		this.slot = slot;
+	}
+
 	public void setEntryTime(LocalDateTime entryTime) {
 		this.entryTime = entryTime;
 	}
-	
+
 	public void setExitTime(LocalDateTime exitTime) {
 		this.exitTime = exitTime;
 	}
-	
+
 	public void setTotalFee(double totalFee) {
 		this.totalFee = totalFee;
 	}
-	
-	public void setSlotNumber(int slotNumber) {
-		this.slotNumber = slotNumber;    
+
+	public void setActive(boolean active) {
+		this.isActive = active;
 	}
 	
-	public void exitVehicle () {
-		this.exitTime = LocalDateTime.now();
-		totalFee = vehicle.calculateFee(Duration.between(entryTime, exitTime));
+	public void setReservedMinutes(int reservedMinutes) {
+	    this.reservedMinutes = Math.max(reservedMinutes, 0);
+	}
+
+	public void setEstimatedFee(double estimatedFee) {
+	    this.estimatedFee = Math.max(estimatedFee, 0.0);
+	}
+
+	public void setPaid(boolean paid) {
+	    this.paid = paid;
+	}
+
+	public void setPaymentMethod(String paymentMethod) {
+	    this.paymentMethod = paymentMethod;
 	}
 	
+	//helper function for the plate+id ticket id format
+	//returns the ticketID as plate+ ticket id, ex: plate# is 112ad12 
+	///and the ticketID (ticket number, each time a ticket is made, it increments by one, so each ticket is different, even if it has the same plate number)
+	// is 9, the complete TicketId would be 112ad129, 9 being the ticket number.
+	public String getTicketIDCode() {
+		String plate;
+		if(vehicle != null && vehicle.getPlateNumber() != null) {
+			plate = vehicle.getPlateNumber();
+		}
+		else {
+			plate = "UNKNOWN";
+		}
+		
+		return plate + ticketID;
+	}
+
+	//helper function for payments
+	public void pay(String method) {
+	    // if still active and no exit time, treat payment as "leaving now"
+	    if (isActive) {
+	        closeTicket(LocalDateTime.now());
+	    } else if (totalFee == 0.0) {
+	        // if we somehow closed without computing fee
+	        totalFee = generateFee();
+	    }
+	    this.paid = true;
+	    this.paymentMethod = method;
+	}
+	
+	//ticket toString
 	@Override
 	public String toString() {
-		String output = "/tTicket ID: " + getID() + "\n"
-		+ "\tVehicle Plate Number: " + getVehicle().getPlateNumber() + "\n"
-		+ "\tVehicle Brand: " + getVehicle().getBrand() + "\n"
-		+ "\tVehicle Model: " + getVehicle().getModel()+"\n"
-		+ "\tVehicle Color: " + getVehicle().getColor()+"\n"
-		+ "\tVehicle Owner: " + ParkingLotManager.findUserByID(getVehicle().getOwnerID()).getFullName() + "\n"
-		+ "\tEntry Date: " + getEntryDate()+"\n"
-		+ "\tEntry Time: " + getEntryTimeToString()+"\n"
-		+ "\tSlot Number: "+ getSlotNumber() + "\n"; //if it's active print only this
-
-		
-		if (exitTime == null) {
-			return output + "/t------------------------------------------------";
-		}else {
-			return output //else history
-			+ "\tExit Date: "+ getExitDate()+"\n"
-			+ "\tExit Time: "+ getExitTimeToString()+"\n"
-			+ "\tDuration in Minutes: " +
-					Duration.between(getEntryTime(), getExitTime()).toMinutes()+"\n"
-			+ "\tTotal Fee " + "$" + getTotalFee() + "\n"
-			+ "/t------------------------------------------------";
-		}
+		return "Ticket{" +
+                "ticketID=" + ticketID +
+                ", compositeCode='" + getTicketIDCode() + '\'' +
+                ", vehicle=" + (vehicle != null ? vehicle.getPlateNumber() : "none") +
+                ", slot=" + (slot != null ? slot.getSlotID() : -1) +
+                ", entryTime=" + entryTime +
+                ", exitTime=" + exitTime +
+                ", totalFee=" + totalFee +
+                ", estimatedFee=" + estimatedFee +
+                ", isActive=" + isActive +
+                ", paid=" + paid +
+                ", paymentMethod=" + paymentMethod +
+                '}';
 	}
-	
-	
-	
-	
 }
