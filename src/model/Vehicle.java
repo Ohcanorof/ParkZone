@@ -1,5 +1,6 @@
 package model;
 
+import java.time.Duration;
 /*
  * Vehicle will be abstract class and every Vehicle type will inherit it
  */
@@ -8,14 +9,14 @@ public abstract class Vehicle implements Payable{
 	private String plateNumber;	// the plate number will be unique ID
 	private String brand;
 	private String model;
-	private Color color;
+	private Colors color;
 	private VehicleType type;
 	
 	//constructor
 	public Vehicle() {
 		
 	}
-	public Vehicle(String plateNumber, String brand, String model, Color color, VehicleType type) {
+	public Vehicle(String plateNumber, String brand, String model, Colors color, VehicleType type) {
 		this.plateNumber= plateNumber;
 		this.brand = brand;
 		this.model = model;
@@ -55,6 +56,16 @@ public abstract class Vehicle implements Payable{
 		return ratePerHour * hours;
 	}
 	
+	// Payable interface implementation
+    @Override
+    public double calculateFee(Duration duration) {
+        if (duration == null) {
+            return 0.0;
+        }
+        long minutes = duration.toMinutes();
+        return calculateFee((int) minutes);
+    }
+	
 	
 	//SETTERS
 	public void setPlateNumber(String plateNumber) {
@@ -65,11 +76,11 @@ public abstract class Vehicle implements Payable{
 		this.type = type;
 	}
 	
-	public void setColor(Color color) {
+	public void setColor(Colors color) {
 		this.color = color;
 	}
 
-	public void setBramd(String brand) {
+	public void setBrand(String brand) {
 		this.brand = brand;
 	}
 	
@@ -86,7 +97,7 @@ public abstract class Vehicle implements Payable{
 		return type;
 	}
 
-	public Color getColor() {
+	public Colors getColor() {
 		return color;
 	}
 	
@@ -98,6 +109,7 @@ public abstract class Vehicle implements Payable{
 		return model;
 	}
 	
+	//vehicle toString
 	@Override
 	public String toString() {
 		return "Vehicle{" +

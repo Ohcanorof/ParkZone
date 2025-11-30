@@ -1,5 +1,8 @@
 package model;
-
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
+import model.ParkingSlot;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -153,5 +156,82 @@ public class EventStreamClient {
     	return true;
     }
     
+    //functions for slots
+    // tells server: "Admin wants to add N slots"
+    public boolean addSlotsOnServer(int count) throws IOException, ClassNotFoundException {
+        Message msg = new Message(Message.TYPE_ADD_SLOTS, String.valueOf(count));
+        Message resp = sendAndReceive(msg);
+        return "success".equalsIgnoreCase(resp.getStatus());
+    }
     
+    //tells server: "Admin wants to remove slots by the id"
+    public boolean removeSlot(int slotId) throws IOException, ClassNotFoundException {
+        Message req = new Message(Message.TYPE_REMOVE_SLOT, String.valueOf(slotId));
+        Message resp = sendAndReceive(req);
+
+        if (!"success".equalsIgnoreCase(resp.getStatus())) {
+            System.out.println("[Client] Remove slot failed: " + resp.getText());
+            return false;
+        }
+        return true;
+    }
+
+    // ask server for current slots, parse into a List<ParkingSlot>
+    public List<ParkingSlot> fetchSlotsFromServer(int garageId, String type)
+            throws IOException, ClassNotFoundException {
+
+        Message req = new Message(Message.TYPE_GET_SLOTS, "");
+        Message resp = sendAndReceive(req);
+
+        if (!"success".equalsIgnoreCase(resp.getStatus())) {
+            System.out.println("[Client] Failed to get slots: " + resp.getText());
+            return Collections.emptyList();
+        }
+
+        String data = resp.getText();
+        List<ParkingSlot> result = new ArrayList<>();
+
+        if (data == null || data.isBlank()) {
+            return result;
+        }
+
+        String[] parts = data.split(";");
+        for (String part : parts) {
+            String[] fields = part.split(",", -1);
+            if (fields.length < 2) continue;
+
+            try {
+                int id = Integer.parseInt(fields[0]);
+                boolean occupied = "1".equals(fields[1]);
+
+                ParkingSlot s = new ParkingSlot();
+                s.setSlotID(id);
+                s.setOccupied(occupied);
+                s.setVehicle(null); // not syncing vehicle details yet
+
+                result.add(s);
+            } catch (NumberFormatException ignored) { }
+        }
+
+        return result;
+    }
+    
+    public boolean reserveSlotOnServer(int slotId, String plateNumber)
+            throws IOException, ClassNotFoundException {
+
+        Message msg = new Message(Message.TYPE_RESERVE_SLOT);
+        msg.setSlotId(slotId);
+        if (plateNumber != null) {
+            msg.setText(plateNumber);
+        }
+
+        Message resp = sendAndReceive(msg);
+
+        if (!"success".equalsIgnoreCase(resp.getStatus())) {
+            System.out.println("[Client] Reserve slot failed: " + resp.getText());
+            return false;
+        }
+
+        return true;
+    }
 }
