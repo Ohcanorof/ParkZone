@@ -20,9 +20,9 @@ public class EventStreamClient {
     private ObjectInputStream in;
 
     public EventStreamClient(String host, int port) throws IOException {
-        this.host = host;
-        this.port = port;
-        connect();
+    	this.host = host;
+    	this.port = port;
+    	connect();
     }
 
     private void connect() throws IOException {
@@ -35,30 +35,72 @@ public class EventStreamClient {
         in = new ObjectInputStream(socket.getInputStream());
     }
 
-    private synchronized Message sendAndReceive(Message message)
-            throws IOException, ClassNotFoundException {
-
-        System.out.println("\n[Client->Server] " + message);
-        out.writeObject(message);
-        out.flush();
-        out.reset();
-
-        Message response = (Message) in.readObject();
-        System.out.println("[Server->Client] " + response);
-        return response;
+    private void send(Message msg) throws IOException{
+    	System.out.println("[Client->Server] " + msg);
+    	out.writeObject(msg);
+    	out.flush();
+    	out.reset();
     }
 
-    public boolean login(String email, String password)
-            throws IOException, ClassNotFoundException {
+    public Message receive() throws IOException, ClassNotFoundException{
+    	Message resp = (Message) in.readObject();
+    	System.out.println("[Server->Client] " + resp);
+    	return resp;
+    }
+    
+    private Message sendAndReceive(Message msg) throws IOException, ClassNotFoundException{
+    	send(msg);
+    	return receive();
+    }
+    //login w/ email and password (might change to username and password instead
+    public User login(String email, String password) throws IOException, ClassNotFoundException {
+    	// send: type=login, text="email|password"
+    	String payload = email + "|" + password;
+        Message loginMsg = new Message(Message.TYPE_LOGIN, payload);
+        send(loginMsg);
+        
+        Message resp = receive();
+        
+        if (!"success".equalsIgnoreCase(resp.getStatus())) {
+            System.out.println("[Client] Login failed: " + resp.getText());
+            return null;
+        }
+        
+        String info = resp.getText(); // "ID|firstName|lastName|email|accountType"
+        if (info == null || info.isEmpty()) {
+            System.out.println("[Client] Login success but no user info in response.");
+            return null;
+        }
+        
+        String[] parts = info.split("\\|", -1);
+        if (parts.length < 5) {
+            System.out.println("[Client] Unexpected user info format: " + info);
+            return null;
+        }
+        
+        int id;
+        try {
+            id = Integer.parseInt(parts[0]);
+        } catch (NumberFormatException e) {
+            System.out.println("[Client] Invalid user ID in response: " + parts[0]);
+            return null;
+        }
+        String firstName   = parts[1];
+        String lastName    = parts[2];
+        String userEmail   = parts[3];
+        String accountType = parts[4];
+        
+        //differentiate between admin and customer
+        User user;
+        if ("ADMIN".equalsIgnoreCase(accountType)) {
+            user = new Admin(id, firstName, lastName, userEmail, password);
+        } else {
+            // default to Client for CUSTOMER or other account types (might add the operator?)
+            user = new Client(id, firstName, lastName, userEmail, password);
+        }
+        user.setAccountType(accountType);
 
-        System.out.println("\n=== Performing login ===");
-        Message loginMsg = new Message(Message.TYPE_LOGIN);
-
-        // simple: send email as text for now (server ignores it)
-        loginMsg.setText(email);
-
-        Message response = sendAndReceive(loginMsg);
-        return "success".equals(response.getStatus());
+        return user;
     }
 
     public String sendText(String text) throws IOException, ClassNotFoundException {
@@ -92,6 +134,24 @@ public class EventStreamClient {
             if (socket != null && !socket.isClosed()) socket.close();
         } catch (IOException ignored) {
         }
-        System.out.println("Connection closed.");
+        System.out.println("[EventStreamClient] Connection closed.");
     }
+    
+    public boolean registerAccount(String firstName, String lastName, String email, String password, String accountType) throws IOException, ClassNotFoundException{
+    	// firstName|lastName|email|password|accountType
+    	//MIGHT CHANGE THIS
+        String payload = String.join("|", firstName, lastName, email, password, accountType != null ? accountType : "CUSTOMER");
+    	
+    	Message registerMsg = new Message(Message.TYPE_REGISTER, payload);
+    	Message resp = sendAndReceive(registerMsg);
+    	
+    	if(!"success".equalsIgnoreCase(resp.getStatus())){
+    		System.out.println("[Client] Registration failed: " + resp.getText());
+    		System.out.println("[Client] Registration succeeded for email: " + email);
+    		return false;
+    	}
+    	return true;
+    }
+    
+    
 }

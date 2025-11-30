@@ -3,6 +3,8 @@ package junitTesting;
 import model.Ticket;
 import model.ParkingSlot;
 import model.Vehicle;
+import model.VehicleType;
+import model.Color;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import static org.junit.jupiter.api.Assertions.*;
@@ -10,7 +12,24 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
 public class TicketTest {
-
+	//vehicle for testing
+	private static class TestVehicle extends Vehicle {
+        @Override
+        public double calculateFee(long minutesParked) {
+            return 0;
+        }
+    }
+	
+	private TestVehicle newTestVehicle(String plate) {
+		TestVehicle v = new TestVehicle();
+        v.setPlateNumber(plate);
+        v.setBramd("TestBrand");
+        v.setModel("TestModel");
+        v.setColor(Color.BLACK);
+        v.setType(VehicleType.CAR);;
+        return v;
+	}
+	
 	//this tests the constructor set fields and defaults the entry time when null
 	@Test
 	void constructorFieldsTime() {
