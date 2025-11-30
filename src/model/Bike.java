@@ -4,6 +4,7 @@ import java.time.Duration;
 
 public class Bike extends Vehicle {
 
+<<<<<<< HEAD
     public Bike() {
         super();
         // Treat Bike as a MOTORCYCLE in VehicleType 
@@ -19,4 +20,12 @@ public class Bike extends Vehicle {
         // Use the shared pricing logic in Vehicle
         return super.calculateFee(duration);
     }
+=======
+	@Override
+	public double calculateFee(Duration duration) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+>>>>>>> 23b811087ec9c7d2f890e3a7b170e7856ea6fa3c
 }
