@@ -4,14 +4,14 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.io.Serializable;
 
-
-public class Client extends User {
+public class Client extends User implements Serializable{
 	
 	//client
 	//represents a registered user of the parking system. they can register vehicles
 	//request parking, and view/manage tickets.
-	
+	private static final long serialVersionUID = 1L;
 	private final List<Vehicle> registeredVehicles = new ArrayList<>();
 	private final List<Ticket> activeTickets = new ArrayList<>();
 	private final List<Ticket> ticketHistory = new ArrayList<>();
@@ -127,7 +127,14 @@ public class Client extends User {
 		}
 	}
 	
-
+	public void addActiveTicket(Ticket t) {
+        if (t == null) {
+            return;
+        }
+        if (!activeTickets.contains(t)) {
+            activeTickets.add(t);
+        }
+    }
 	
 
 }

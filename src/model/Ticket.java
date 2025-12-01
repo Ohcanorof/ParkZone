@@ -2,10 +2,10 @@ package model;
 
 import java.time.LocalDateTime;
 import java.time.Duration;
+import java.io.Serializable;
 
-
-public class Ticket {
-
+public class Ticket implements Serializable {
+	private static final long serialVersionUID = 1L;
 	private static int nextId = 1;
 	private int ticketID;
 	private double totalFee;
@@ -56,6 +56,13 @@ public class Ticket {
 	private static synchronized int generateNextId() {
 		return nextId++;
 	}
+	
+	private Double feeOverride = null;  // Add field at top
+
+	public void setFeeOverride(double fee) {
+	    this.feeOverride = fee;
+	}
+
 	
 	//function for ticket closing
 	public void closeTicket(LocalDateTime exitTime) {
@@ -119,8 +126,12 @@ public class Ticket {
 		return exitTime;
 	}
 
+	// Modify getTotalFee():
 	public double getTotalFee() {
-		return totalFee;
+	    if (feeOverride != null) {
+	        return feeOverride;
+	    }
+	    return totalFee;
 	}
 
 	public boolean isActive() {
@@ -187,6 +198,8 @@ public class Ticket {
 	public void setPaymentMethod(String paymentMethod) {
 	    this.paymentMethod = paymentMethod;
 	}
+	
+	
 	
 	//helper function for the plate+id ticket id format
 	//returns the ticketID as plate+ ticket id, ex: plate# is 112ad12 

@@ -6,14 +6,6 @@ import java.io.EOFException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import model.ParkingSystem;
-import model.ParkingSlot;
-import model.Ticket;
-import model.Vehicle;
-import model.Car;
-import model.VehicleType;
-import java.time.format.DateTimeFormatter;
-import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 //the ClientHandler
@@ -30,18 +22,20 @@ public class ClientHandler implements Runnable {
 	private final AtomicBoolean open = new AtomicBoolean(true);
 	private boolean loggedIn = false;
 	private volatile boolean running = true;
-	private final ParkingSystem parkingSystem; 
+	private final ParkingSystem parkingSystem;
+	private final TicketService ticketService;
 	//private final ParkingSystem parkingSystem = ParkingSystem.getInstance();
 	//to track the logged in user:
 	private User currentUser;
 	
 	//constructor
 	public ClientHandler(ParkingSystemServer server, Socket socket, String clientId) {
-        this.server = server;
-        this.socket = socket;
-        this.clientId = clientId;
-        this.parkingSystem = server.getParkingSystem();
-    }
+	    this.server = server;
+	    this.socket = socket;
+	    this.clientId = clientId;
+	    this.parkingSystem = server.getParkingSystem();
+	    this.ticketService = server.getTicketService();
+	}
 	
 	//getters
 	public String getClientId() {
@@ -107,6 +101,7 @@ public class ClientHandler implements Runnable {
                     case Message.TYPE_ADD_SLOTS -> handleAddSlots(message);
                     case Message.TYPE_REMOVE_SLOT -> handleRemoveSlot(message);
                     case Message.TYPE_RESERVE_SLOT -> handleReserveSlot(message);
+                    case Message.TYPE_GET_TICKETS -> handleGetTickets(message);
                     default -> System.out.println(
                             "[Client " + clientId + "] Unknown message type: " + message.getType()
                     );
@@ -346,6 +341,10 @@ public class ClientHandler implements Runnable {
         send(resp);
 
         System.out.println("[Client " + clientId + "] Admin added " + count + " slots.");
+    	//broadcast updated slots list to everyone (should remove the need for a refresh button?!)
+        java.util.List<ParkingSlot> allSlots = parkingSystem.getSlotsSnapshot();
+        Message update = Message.makeSlotsUpdate(allSlots);
+        server.broadcast(update);
     }
 
     private int computeNextSlotIdFromServer() {
@@ -359,20 +358,43 @@ public class ClientHandler implements Runnable {
     }
 	
     private void handleGetSlots(Message message) throws IOException {
-        // For now ignore garageId/type in message.getText(), just return all slots
-        StringBuilder sb = new StringBuilder();
-
-        for (ParkingSlot s : parkingSystem.getSlots()) {
-            if (s == null) continue;
-            if (sb.length() > 0) sb.append(";");
-            sb.append(s.getSlotID())
-              .append(",")
-              .append(s.isOccupied() ? "1" : "0");
-        }
+        // Ignore message.getText() filters for now; return all slots snapshot to send actual objects
+        java.util.List<ParkingSlot> snapshot = parkingSystem.getSlotsSnapshot();
 
         Message resp = new Message(Message.TYPE_SLOTS_DATA);
         resp.setStatus("success");
-        resp.setText(sb.toString());
+        resp.setSlots(snapshot);
+        send(resp);
+    }
+    
+    private void handleGetTickets(Message message) throws IOException {
+        Message resp = new Message(Message.TYPE_TICKETS_DATA);
+
+        if (currentUser == null) {
+            resp.setStatus("error");
+            resp.setText("Must be logged in to view tickets.");
+            send(resp);
+            return;
+        }
+
+        java.util.List<Ticket> snapshot = new java.util.ArrayList<>();
+
+        if (currentUser instanceof Client client) {
+            //customers see only their tickets (active + history)
+            snapshot.addAll(client.getActiveTickets());
+            snapshot.addAll(client.getTicketHistory());
+        } else if (currentUser instanceof Admin) {
+            //admins see all tickets in the system
+            snapshot.addAll(parkingSystem.getTicketsSnapshot());
+        } else {
+            resp.setStatus("error");
+            resp.setText("Unsupported user type for ticket view.");
+            send(resp);
+            return;
+        }
+
+        resp.setStatus("success");
+        resp.setTickets(snapshot);
         send(resp);
     }
     
@@ -409,6 +431,10 @@ public class ClientHandler implements Runnable {
         } else {
             resp.setStatus("success");
             resp.setText("Slot " + slotId + " removed.");
+        	//broadcast updated slots list to everyone (should remove the need for a refresh button?!)
+            java.util.List<ParkingSlot> allSlots = parkingSystem.getSlotsSnapshot();
+            Message update = Message.makeSlotsUpdate(allSlots);
+            server.broadcast(update);
         }
         send(resp);
     }
@@ -434,6 +460,13 @@ public class ClientHandler implements Runnable {
             send(resp);
             return;
         }
+        
+        if (!(currentUser instanceof Client client)) {
+            resp.setStatus("error");
+            resp.setText("Only logged-in customers can reserve slots.");
+            send(resp);
+            return;
+        }
 
         ParkingSlot slot = findSlotById(slotId);
         if (slot == null) {
@@ -443,25 +476,59 @@ public class ClientHandler implements Runnable {
             return;
         }
 
-        if (slot.isOccupied()) {
+        if (slot.isOccupied() || slot.isOutOfService()) {
             resp.setStatus("error");
-            resp.setText("Slot " + slotId + " is already occupied.");
+            resp.setText("Slot " + slotId + " is not available!");
             send(resp);
             return;
         }
+        
+        String plateNumber = message.getText();
+        if (plateNumber == null || plateNumber.isBlank()) {
+            resp.setStatus("error");
+            resp.setText("No plate number provided.");
+            send(resp);
+            return;
+        }
+        
+        // Find or create a Vehicle for this client by plate
+        Vehicle vehicle = null;
+        for (Vehicle v : client.getRegisteredVehicles()) {
+            if (plateNumber.equalsIgnoreCase(v.getPlateNumber())) {
+                vehicle = v;
+                break;
+            }
+        }
+        if (vehicle == null) {
+            // simple default vehicle if not registered
+            vehicle = new Car(plateNumber, "Unknown", "Unknown", null, VehicleType.REGULAR);
+            client.registerVehicle(vehicle);
+        }
 
-        // Mark the slot as occupied in the SERVER'S ParkingSystem
-        slot.setOccupied(true);
-        // later: create a server-side Ticket using TicketService, attach vehicle, etc.
+        try {
+            Ticket ticket = ticketService.createTicket(client, vehicle, slot);
+            if (ticket == null) {
+                resp.setStatus("error");
+                resp.setText("Failed to create ticket.");
+                send(resp);
+                return;
+            }
 
-        resp.setStatus("success");
-        resp.setText("Slot " + slotId + " reserved on server.");
-        send(resp);
+            //marked the slot as reserved
+            resp.setStatus("success");
+            resp.setText("Slot " + slotId + " reserved on server. Ticket #" + ticket.getTicketID());
+            send(resp);
 
-        // (maybe for the future): broadcast the updated slots list to all clients
-        // java.util.List<ParkingSlot> allSlots = parkingSystem.getSlots();
-        // Message update = Message.makeSlotsUpdate(allSlots);
-        // server.broadcast(update);
+            // Broadcast updated slots to all clients
+            java.util.List<ParkingSlot> allSlots = parkingSystem.getSlotsSnapshot();
+            Message update = Message.makeSlotsUpdate(allSlots);
+            server.broadcast(update);
+
+        } catch (Exception ex) {
+            resp.setStatus("error");
+            resp.setText("Error reserving slot: " + ex.getMessage());
+            send(resp);
+        }
     }
     
 }

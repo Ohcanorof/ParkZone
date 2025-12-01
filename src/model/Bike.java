@@ -2,9 +2,21 @@ package model;
 
 import java.time.Duration;
 
+/**
+ * Bike (Motorcycle) vehicle type
+ * Inherits calculateFee logic from Vehicle parent class
+ */
 public class Bike extends Vehicle {
+	
+	public Bike() {
+		super();
+		setType(VehicleType.MOTORCYCLE);
+	}
+	
+	public Bike(String plateNumber, String brand, String model, Colors color) {
+		super(plateNumber, brand, model, color, VehicleType.MOTORCYCLE);
+	}
 
-<<<<<<< HEAD
     public Bike() {
         super();
         // Treat Bike as a MOTORCYCLE in VehicleType 
@@ -20,12 +32,11 @@ public class Bike extends Vehicle {
         // Use the shared pricing logic in Vehicle
         return super.calculateFee(duration);
     }
-=======
-	@Override
-	public double calculateFee(Duration duration) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
 
->>>>>>> 23b811087ec9c7d2f890e3a7b170e7856ea6fa3c
 }
+=======
+	
+	// Inherits both calculateFee(int) and calculateFee(Duration) from Vehicle
+	// No override needed - Vehicle.calculateFee handles MOTORCYCLE type via switch statement
+}
+

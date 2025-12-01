@@ -3,9 +3,12 @@ package model;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-public class Admin extends User {
+import java.io.Serializable;
+public class Admin extends User implements Serializable{
 	// Slots this admin manages (can be a subset of all slots in ParkingSystem)
-    private final List<ParkingSlot> managedSlots = new ArrayList<>();
+	private static final long serialVersionUID = 1L;
+	private final List<ParkingSlot> managedSlots = new ArrayList<>();
+	
 	public Admin() {
 		super();
 		super.actions = new Actionable[] {
