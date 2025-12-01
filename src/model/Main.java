@@ -1,5 +1,7 @@
 package model;
 
+import uiwindows.AdminGUI;
+
 public class Main {
     public static void main(String[] args) {
         int port = 8080;
@@ -15,9 +17,20 @@ public class Main {
         initializeParkingSlots();
         initializeTestData();
         
-        ClientGUI gui = new ClientGUI();
-        gui.start();
-        gui.connect("localhost", port);  // Change to "10.0.0.150" for remote
+        // ✨ NEW: Choose which GUI to launch
+        String mode = args.length > 0 ? args[0] : "customer";
+        
+        if ("admin".equalsIgnoreCase(mode)) {
+            // Launch admin panel
+            AdminGUI adminGui = new AdminGUI();
+            adminGui.start();
+            adminGui.connect("localhost", port);
+        } else {
+            // Launch customer GUI (Jose's work)
+            ClientGUI gui = new ClientGUI();
+            gui.start();
+            gui.connect("localhost", port);
+        }
     }
     
     private static void initializeParkingSlots() {
@@ -33,9 +46,17 @@ public class Main {
     private static void initializeTestData() {
         ParkingSystem ps = ParkingSystem.getInstance();
         
+        // Create test admin
+        Admin testAdmin = new Admin(999, "Admin", "User", "admin@parkzone.com", "admin123");
+        testAdmin.setAccountType("ADMIN");
+        ps.addUser(testAdmin);
+        
+        // Create test client
         Client testClient = new Client(1, "Test", "User", "test@test.com", "password");
+        testClient.setAccountType("CUSTOMER");
         ps.addUser(testClient);
         
+        // Create test vehicles
         Car car1 = new Car("ABC123", "Toyota", "Camry", Color.BLUE);
         Car car2 = new Car("XYZ789", "Honda", "Civic", Color.RED);
         Bike bike1 = new Bike("BIKE01", "Harley", "Sportster", Color.BLACK);
@@ -44,6 +65,7 @@ public class Main {
         testClient.registerVehicle(car2);
         testClient.registerVehicle(bike1);
         
+        System.out.println("[Main] Created test admin: admin@parkzone.com / admin123");
         System.out.println("[Main] Created test client with 3 vehicles:");
         System.out.println("  - ABC123 (Toyota Camry)");
         System.out.println("  - XYZ789 (Honda Civic)");
