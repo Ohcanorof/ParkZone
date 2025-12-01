@@ -51,9 +51,60 @@ public class EventStreamClient {
     	return resp;
     }
     
-    private Message sendAndReceive(Message msg) throws IOException, ClassNotFoundException{
-    	send(msg);
-    	return receive();
+    private synchronized Message sendAndReceive(Message req) throws IOException, ClassNotFoundException {
+
+        //send the request first
+        out.writeObject(req);
+        out.flush();
+
+        final String reqType = req.getType();
+
+        while (true) {
+            Object raw = in.readObject();
+            if (!(raw instanceof Message resp)) {
+                System.out.println("[Client] Unknown object from server: " + raw);
+                continue;  //keep reading until we see a Message
+            }
+
+            String respType = resp.getType();
+
+            //Match reply based on what we sent
+
+            //sent get_slots -> expect slots_data OR slots_update
+            if (Message.TYPE_GET_SLOTS.equals(reqType)) {
+                if (Message.TYPE_SLOTS_DATA.equals(respType)
+                        || Message.TYPE_SLOTS_UPDATE.equals(respType)) {
+                    return resp;
+                }
+            }
+            //sent get_tickets -> expect tickets_data
+            else if (Message.TYPE_GET_TICKETS.equals(reqType)) {
+                if (Message.TYPE_TICKETS_DATA.equals(respType)) {
+                    return resp;
+                }
+            }
+            //sent reserve_slot -> expect reserve_slot (ack)
+            else if (Message.TYPE_RESERVE_SLOT.equals(reqType)) {
+                if (Message.TYPE_RESERVE_SLOT.equals(respType)) {
+                    return resp;
+                }
+            }
+            //sent add_slots / remove_slot -> expect same type back
+            else if (Message.TYPE_ADD_SLOTS.equals(reqType)
+                  || Message.TYPE_REMOVE_SLOT.equals(reqType)) {
+                if (respType.equals(reqType)) {
+                    return resp;
+                }
+            }
+            //a fallback: for any other simple 1-to-1 command, just return first Message
+            else {
+                return resp;
+            }
+
+            //For now, we just log and ignore them; the caller who cares will make
+            //their own call and get a fresh response.
+            System.out.println("[Client] Skipping message not for this request: " + resp);
+        }
     }
     //login w/ email and password (might change to username and password instead
     public User login(String email, String password) throws IOException, ClassNotFoundException {
@@ -177,43 +228,29 @@ public class EventStreamClient {
     }
 
     // ask server for current slots, parse into a List<ParkingSlot>
-    public List<ParkingSlot> fetchSlotsFromServer(int garageId, String type)
-            throws IOException, ClassNotFoundException {
-
-        Message req = new Message(Message.TYPE_GET_SLOTS, "");
+    public List<ParkingSlot> fetchSlotsFromServer(int garageId, String type) throws IOException, ClassNotFoundException {
+    	Message req = new Message(Message.TYPE_GET_SLOTS, "");
         Message resp = sendAndReceive(req);
 
-        if (!"success".equalsIgnoreCase(resp.getStatus())) {
-            System.out.println("[Client] Failed to get slots: " + resp.getText());
-            return Collections.emptyList();
+        //resp is guaranteed to be slots_data or slots_update (should be)
+        List<ParkingSlot> fromServer = resp.getSlots();
+        if (fromServer == null) {
+            return java.util.Collections.emptyList();
         }
+        return new java.util.ArrayList<>(fromServer);
+    }
+    
+    public List<Ticket> fetchTicketsFromServer() throws IOException, ClassNotFoundException {
+    	//asking server for tickets
+    	Message req = new Message(Message.TYPE_GET_TICKETS, "");
+        Message resp = sendAndReceive(req);
 
-        String data = resp.getText();
-        List<ParkingSlot> result = new ArrayList<>();
-
-        if (data == null || data.isBlank()) {
-            return result;
+        //resp is guaranteed to be tickets_data (should be)
+        List<Ticket> list = resp.getTickets();
+        if (list == null) {
+            return java.util.Collections.emptyList();
         }
-
-        String[] parts = data.split(";");
-        for (String part : parts) {
-            String[] fields = part.split(",", -1);
-            if (fields.length < 2) continue;
-
-            try {
-                int id = Integer.parseInt(fields[0]);
-                boolean occupied = "1".equals(fields[1]);
-
-                ParkingSlot s = new ParkingSlot();
-                s.setSlotID(id);
-                s.setOccupied(occupied);
-                s.setVehicle(null); // not syncing vehicle details yet
-
-                result.add(s);
-            } catch (NumberFormatException ignored) { }
-        }
-
-        return result;
+        return new java.util.ArrayList<>(list);
     }
     
     public boolean reserveSlotOnServer(int slotId, String plateNumber)

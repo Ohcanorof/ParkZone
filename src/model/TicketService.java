@@ -12,7 +12,7 @@ public class TicketService {
         this.paymentProcessor = new PaymentProcessorImpl(new PaymentGatewayImpl());
     }
 
-    public Ticket createTicket(Client client, Vehicle vehicle, ParkingSlot slot) {
+    public synchronized Ticket createTicket(Client client, Vehicle vehicle, ParkingSlot slot) {
         if (client == null) {
             throw new IllegalArgumentException("Client cannot be null");
         }
@@ -26,7 +26,11 @@ public class TicketService {
             throw new IllegalStateException("Slot is already occupied");
         }
 
-        return parkingSystem.issueTicket(vehicle, slot);
+        Ticket t = parkingSystem.issueTicket(vehicle, slot);
+        if(t != null) {
+        	client.addActiveTicket(t);
+        }
+        return t;
     }
     
     //overloaded version
@@ -48,8 +52,10 @@ public class TicketService {
         return parkingSystem.issueTicket(vehicle, slot, entryTime);
     }
 
-    public void closeTicket(int ticketID, LocalDateTime exitTime) {
-        if (exitTime == null) {
+    //close ticket func
+    public synchronized Ticket closeTicket(int ticketID, LocalDateTime exitTime) {
+    	Ticket t = findTicketById(ticketID);
+    	if (exitTime == null) {
             throw new IllegalArgumentException("Exit time cannot be null");
         }
         Ticket ticket = findTicketById(ticketID);
@@ -62,7 +68,16 @@ public class TicketService {
         if (exitTime.isBefore(ticket.getEntryTime())) {
             throw new IllegalArgumentException("Exit time cannot be before entry time");
         }
-        parkingSystem.endParking(ticketID);
+        t.closeTicket(exitTime);
+
+        // Free the slot
+        ParkingSlot slot = t.getSlot();
+        if (slot != null) {
+            slot.setOccupied(false);
+            slot.setVehicle(null);
+        }
+
+        return t;
     }
 
     public List<Ticket> listActiveTickets() {
@@ -89,37 +104,35 @@ public class TicketService {
     }
 
     //pay for a ticket in one place
-    public boolean payTicket(int ticketID, String cardToken, double slotHourlyRate, String method) {
-        Ticket t = findTicketById(ticketID);
+    public synchronized boolean payTicket(int ticketID, String method) {
+    	Ticket t = findTicketById(ticketID);
         if (t == null) {
-            throw new IllegalArgumentException("Ticket not found: " + ticketID);
-        }
-
-        if (!t.isActive()) {
-            //already closed; may or may not allow paying closed tickets later
-            //for now its allowed, but ensure exitTime set
-            if (t.getExitTime() == null) {
-                t.setExitTime(LocalDateTime.now());
-            }
-        } else {
-            // close it now, then compute fee
-            t.closeTicket(LocalDateTime.now());
-        }
-
-        // ompute the fee
-        paymentProcessor.calculateFee(t, slotHourlyRate);
-
-        //pretend to charge card
-        boolean ok = paymentProcessor.takePayment(t, cardToken);
-        if (!ok) {
+            System.err.println("[TicketService] No ticket with ID " + ticketID);
             return false;
         }
 
-        // record payment info on ticket
-        t.setPaid(true);
-        t.setPaymentMethod(method);
+        if (method == null || method.isBlank()) {
+            System.err.println("[TicketService] No payment method provided for ticket " + ticketID);
+            return false;
+        }
+
+        boolean success = paymentProcessor.takePayment(t, method);
+        if (!success) {
+            System.err.println("[TicketService] Payment failed for ticket " + ticketID);
+            return false;
+        }
+
+        // If we wanted extra logic (mark ticket as paid, etc.) we’d do it here.
 
         return true;
+    }
+    
+    public synchronized double getTicketFee(int ticketID) {
+        Ticket t = findTicketById(ticketID);
+        if (t == null) {
+            throw new IllegalArgumentException("No ticket with ID " + ticketID);
+        }
+        return t.getTotalFee();
     }
 
     //helper for receipts
