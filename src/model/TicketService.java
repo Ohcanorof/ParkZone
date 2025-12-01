@@ -3,124 +3,144 @@ package model;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * Service layer for ticket operations
- * Wraps ParkingSystem ticket functionality for cleaner API
- * 
- * @author Group 7
- */
 public class TicketService {
-	private final ParkingSystem parkingSystem;
-	
-	public TicketService() {
-		this.parkingSystem = ParkingSystem.getInstance();
-	}
-	
-	/**
-	 * Create a new parking ticket
-	 * @param client The client requesting parking
-	 * @param vehicle The vehicle to park
-	 * @param slot The parking slot
-	 * @return The created ticket
-	 * @throws IllegalArgumentException if any parameter is null
-	 * @throws IllegalStateException if slot is already occupied
-	 */
-	public Ticket createTicket(Client client, Vehicle vehicle, ParkingSlot slot) {
-		if (client == null) {
-			throw new IllegalArgumentException("Client cannot be null");
-		}
-		if (vehicle == null) {
-			throw new IllegalArgumentException("Vehicle cannot be null");
-		}
-		if (slot == null) {
-			throw new IllegalArgumentException("Slot cannot be null");
-		}
-		if (slot.isOccupied()) {
-			throw new IllegalStateException("Slot is already occupied");
-		}
-		
-		return parkingSystem.issueTicket(vehicle, slot);
-	}
-	
-	/**
-	 * Close a ticket and release the parking slot
-	 * @param ticketID The ticket ID to close
-	 * @param exitTime The exit time
-	 * @throws IllegalArgumentException if ticket not found or already closed
-	 */
-	public void closeTicket(int ticketID, LocalDateTime exitTime) {
-		if (exitTime == null) {
-			throw new IllegalArgumentException("Exit time cannot be null");
-		}
-		
-		// Find ticket
-		Ticket ticket = findTicketById(ticketID);
-		if (ticket == null) {
-			throw new IllegalArgumentException("Ticket not found: " + ticketID);
-		}
-		if (!ticket.isActive()) {
-			throw new IllegalStateException("Ticket already closed: " + ticketID);
-		}
-		
-		// Validate exit time
-		if (exitTime.isBefore(ticket.getEntryTime())) {
-			throw new IllegalArgumentException("Exit time cannot be before entry time");
-		}
-		
-		parkingSystem.endParking(ticketID);
-	}
-	
-	/**
-	 * Get all currently active tickets
-	 * @return List of active tickets
-	 */
-	public List<Ticket> listActiveTickets() {
-		return parkingSystem.getActiveTickets();
-	}
-	
-	/**
-	 * Extend the expiration time of a ticket
-	 * @param ticketID The ticket ID
-	 * @param minutes Number of minutes to extend
-	 * @throws IllegalArgumentException if ticket not found or minutes negative
-	 * @throws IllegalStateException if ticket is closed
-	 */
-	public void extendExpiration(int ticketID, int minutes) {
-		if (minutes < 0) {
-			throw new IllegalArgumentException("Minutes cannot be negative");
-		}
-		
-		Ticket ticket = findTicketById(ticketID);
-		if (ticket == null) {
-			throw new IllegalArgumentException("Ticket not found: " + ticketID);
-		}
-		if (!ticket.isActive()) {
-			throw new IllegalStateException("Cannot extend closed ticket");
-		}
-		
-		// TODO: Implement expiration extension logic when Ticket has expirationTime field
-		// For now, just validate parameters
-	}
-	
-	/**
-	 * Run overstay checks on all active tickets
-	 */
-	public void runOverstayChecks() {
-		parkingSystem.runOverStayChecks();
-	}
-	
-	/**
-	 * Helper method to find ticket by ID
-	 */
-	private Ticket findTicketById(int ticketID) {
-		List<Ticket> allTickets = parkingSystem.getTickets();
-		synchronized(allTickets) {
-			for (Ticket t : allTickets) {
-				if (t.getTicketID() == ticketID) {
-					return t;
-				}
-			}
-		}
-		return null;
-	}
+    private final ParkingSystem parkingSystem;
+    private final PaymentProcessor paymentProcessor;
+
+    public TicketService() {
+        this.parkingSystem = ParkingSystem.getInstance();
+        this.paymentProcessor = new PaymentProcessorImpl(new PaymentGatewayImpl());
+    }
+
+    public Ticket createTicket(Client client, Vehicle vehicle, ParkingSlot slot) {
+        if (client == null) {
+            throw new IllegalArgumentException("Client cannot be null");
+        }
+        if (vehicle == null) {
+            throw new IllegalArgumentException("Vehicle cannot be null");
+        }
+        if (slot == null) {
+            throw new IllegalArgumentException("Slot cannot be null");
+        }
+        if (slot.isOccupied()) {
+            throw new IllegalStateException("Slot is already occupied");
+        }
+
+        return parkingSystem.issueTicket(vehicle, slot);
+    }
+    
+    //overloaded version
+    public Ticket createTicket(Client client, Vehicle vehicle, ParkingSlot slot, LocalDateTime entryTime) {
+        if (client == null) {
+            throw new IllegalArgumentException("Client cannot be null");
+        }
+        if (vehicle == null) {
+            throw new IllegalArgumentException("Vehicle cannot be null");
+        }
+        if (slot == null) {
+            throw new IllegalArgumentException("Slot cannot be null");
+        }
+        if (slot.isOccupied()) {
+            throw new IllegalStateException("Slot is already occupied");
+        }
+
+        // use the new ParkingSystem overload
+        return parkingSystem.issueTicket(vehicle, slot, entryTime);
+    }
+
+    public void closeTicket(int ticketID, LocalDateTime exitTime) {
+        if (exitTime == null) {
+            throw new IllegalArgumentException("Exit time cannot be null");
+        }
+        Ticket ticket = findTicketById(ticketID);
+        if (ticket == null) {
+            throw new IllegalArgumentException("Ticket not found: " + ticketID);
+        }
+        if (!ticket.isActive()) {
+            throw new IllegalStateException("Ticket already closed: " + ticketID);
+        }
+        if (exitTime.isBefore(ticket.getEntryTime())) {
+            throw new IllegalArgumentException("Exit time cannot be before entry time");
+        }
+        parkingSystem.endParking(ticketID);
+    }
+
+    public List<Ticket> listActiveTickets() {
+        return parkingSystem.getActiveTickets();
+    }
+
+    public void extendExpiration(int ticketID, int minutes) {
+        //can keep this as is or make it have more features later
+        if (minutes < 0) {
+            throw new IllegalArgumentException("Minutes cannot be negative");
+        }
+        Ticket ticket = findTicketById(ticketID);
+        if (ticket == null) {
+            throw new IllegalArgumentException("Ticket not found: " + ticketID);
+        }
+        if (!ticket.isActive()) {
+            throw new IllegalStateException("Cannot extend closed ticket");
+        }
+        // TODO: implement when Ticket has expiration field
+    }
+
+    public void runOverstayChecks() {
+        parkingSystem.runOverStayChecks();
+    }
+
+    //pay for a ticket in one place
+    public boolean payTicket(int ticketID, String cardToken, double slotHourlyRate, String method) {
+        Ticket t = findTicketById(ticketID);
+        if (t == null) {
+            throw new IllegalArgumentException("Ticket not found: " + ticketID);
+        }
+
+        if (!t.isActive()) {
+            //already closed; may or may not allow paying closed tickets later
+            //for now its allowed, but ensure exitTime set
+            if (t.getExitTime() == null) {
+                t.setExitTime(LocalDateTime.now());
+            }
+        } else {
+            // close it now, then compute fee
+            t.closeTicket(LocalDateTime.now());
+        }
+
+        // ompute the fee
+        paymentProcessor.calculateFee(t, slotHourlyRate);
+
+        //pretend to charge card
+        boolean ok = paymentProcessor.takePayment(t, cardToken);
+        if (!ok) {
+            return false;
+        }
+
+        // record payment info on ticket
+        t.setPaid(true);
+        t.setPaymentMethod(method);
+
+        return true;
+    }
+
+    //helper for receipts
+    public String generateReceipt(int ticketID) {
+        Ticket t = findTicketById(ticketID);
+        if (t == null) {
+            throw new IllegalArgumentException("Ticket not found: " + ticketID);
+        }
+        return paymentProcessor.generateReceipt(t);
+    }
+
+    // ticket finder helper
+    private Ticket findTicketById(int ticketID) {
+        List<Ticket> allTickets = parkingSystem.getTickets();
+        synchronized (allTickets) {
+            for (Ticket t : allTickets) {
+                if (t.getTicketID() == ticketID) {
+                    return t;
+                }
+            }
+        }
+        return null;
+    }
 }

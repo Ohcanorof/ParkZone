@@ -4,7 +4,7 @@ import model.Ticket;
 import model.ParkingSlot;
 import model.Vehicle;
 import model.VehicleType;
-import model.Color;
+import model.Colors;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,7 +25,7 @@ public class TicketTest {
         v.setPlateNumber(plate);
         v.setBramd("TestBrand");
         v.setModel("TestModel");
-        v.setColor(Color.BLACK);
+        v.setColor(Colors.BLACK);
         v.setType(VehicleType.CAR);;
         return v;
 	}

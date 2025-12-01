@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 <<<<<<< HEAD
 =======
 import model.Vehicle;
-import model.Color;
+import model.Colors;
 import model.VehicleType;
 >>>>>>> main
 import org.junit.jupiter.api.Test;
@@ -339,13 +339,13 @@ class VehicleTest {
 		v.setPlateNumber("XYZ789");
         v.setBramd("Honda");
         v.setModel("Civic");
-        v.setColor(Color.BLUE);
+        v.setColor(Colors.BLUE);
         v.setType(VehicleType.CAR);
 		
         assertEquals("XYZ789", v.getPlateNumber());
         assertEquals("Honda", v.getBrand());
         assertEquals("Civic", v.getModel());
-        assertEquals(Color.BLUE, v.getColor());
+        assertEquals(Colors.BLUE, v.getColor());
         assertEquals(VehicleType.CAR, v.getType());
 		
 		
@@ -360,7 +360,7 @@ class VehicleTest {
 		v.setPlateNumber("XYZ789");
         v.setBramd("Honda");
         v.setModel("Civic");
-        v.setColor(Color.BLUE);
+        v.setColor(Colors.BLUE);
         v.setType(VehicleType.CAR);
 
         String s = v.toString();

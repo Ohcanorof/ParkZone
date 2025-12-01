@@ -6,6 +6,14 @@ import java.io.EOFException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import model.ParkingSystem;
+import model.ParkingSlot;
+import model.Ticket;
+import model.Vehicle;
+import model.Car;
+import model.VehicleType;
+import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 //the ClientHandler
@@ -23,6 +31,7 @@ public class ClientHandler implements Runnable {
 	private boolean loggedIn = false;
 	private volatile boolean running = true;
 	private final ParkingSystem parkingSystem; 
+	//private final ParkingSystem parkingSystem = ParkingSystem.getInstance();
 	//to track the logged in user:
 	private User currentUser;
 	
@@ -88,16 +97,20 @@ public class ClientHandler implements Runnable {
                         send(errorMsg);
                     }
                 } else {
-                    switch (message.getType()) {
-                        case Message.TYPE_TEXT -> handleText(message);
-                        case Message.TYPE_LOGOUT -> {
-                            handleLogout(message);
-                            running = false;
-                        }
-                        default -> System.out.println(
-                                "[Client " + clientId + "] Unknown message type: " + message.getType()
-                        );
+                	switch (message.getType()) {
+                    case Message.TYPE_TEXT -> handleText(message);
+                    case Message.TYPE_LOGOUT -> {
+                        handleLogout(message);
+                        running = false;
                     }
+                    case Message.TYPE_GET_SLOTS -> handleGetSlots(message);
+                    case Message.TYPE_ADD_SLOTS -> handleAddSlots(message);
+                    case Message.TYPE_REMOVE_SLOT -> handleRemoveSlot(message);
+                    case Message.TYPE_RESERVE_SLOT -> handleReserveSlot(message);
+                    default -> System.out.println(
+                            "[Client " + clientId + "] Unknown message type: " + message.getType()
+                    );
+                	}
                 }
 
             } catch (EOFException e) {
@@ -149,7 +162,7 @@ public class ClientHandler implements Runnable {
             }
         }
         
-        // assign an ID: size+1
+        // easy ID assignment: size+1
         int newId = parkingSystem.getUsers().size() + 1;
         
         User user;
@@ -286,5 +299,169 @@ public class ClientHandler implements Runnable {
         System.out.println("[Client " + clientId + "] Connection closed");
     }
 
+    //-----------------------------------
+    //functions for slots to be visible between clients
+    private void handleAddSlots(Message message) throws IOException {
+        // only ADMINS can add slots
+        if (currentUser == null || !"ADMIN".equalsIgnoreCase(currentUser.getAccountType())) {
+            Message resp = new Message(Message.TYPE_ADD_SLOTS);
+            resp.setStatus("error");
+            resp.setText("Only admins can add slots.");
+            send(resp);
+            return;
+        }
+
+        int count;
+        try {
+            count = Integer.parseInt(message.getText());
+        } catch (Exception e) {
+            Message resp = new Message(Message.TYPE_ADD_SLOTS);
+            resp.setStatus("error");
+            resp.setText("Invalid slot count: " + message.getText());
+            send(resp);
+            return;
+        }
+
+        if (count <= 0) {
+            Message resp = new Message(Message.TYPE_ADD_SLOTS);
+            resp.setStatus("error");
+            resp.setText("Count must be positive.");
+            send(resp);
+            return;
+        }
+
+        int nextId = computeNextSlotIdFromServer();
+
+        for (int i = 0; i < count; i++) {
+            ParkingSlot s = new ParkingSlot();
+            s.setSlotID(nextId++);
+            s.setOccupied(false);
+            s.setVehicle(null);
+            parkingSystem.addSlot(s);
+        }
+
+        Message resp = new Message(Message.TYPE_ADD_SLOTS);
+        resp.setStatus("success");
+        resp.setText("Added " + count + " slots.");
+        send(resp);
+
+        System.out.println("[Client " + clientId + "] Admin added " + count + " slots.");
+    }
+
+    private int computeNextSlotIdFromServer() {
+        int max = 0;
+        for (ParkingSlot s : parkingSystem.getSlots()) {
+            if (s != null && s.getSlotID() > max) {
+                max = s.getSlotID();
+            }
+        }
+        return max + 1;
+    }
 	
+    private void handleGetSlots(Message message) throws IOException {
+        // For now ignore garageId/type in message.getText(), just return all slots
+        StringBuilder sb = new StringBuilder();
+
+        for (ParkingSlot s : parkingSystem.getSlots()) {
+            if (s == null) continue;
+            if (sb.length() > 0) sb.append(";");
+            sb.append(s.getSlotID())
+              .append(",")
+              .append(s.isOccupied() ? "1" : "0");
+        }
+
+        Message resp = new Message(Message.TYPE_SLOTS_DATA);
+        resp.setStatus("success");
+        resp.setText(sb.toString());
+        send(resp);
+    }
+    
+    //emthod for handling the slot removal:
+    private void handleRemoveSlot(Message message) throws IOException {
+        String text = message.getText();
+        int slotId;
+
+        try {
+            slotId = Integer.parseInt(text.trim());
+        } catch (Exception e) {
+            Message resp = new Message(Message.TYPE_REMOVE_SLOT);
+            resp.setStatus("error");
+            resp.setText("Invalid slot id: " + text);
+            send(resp);
+            return;
+        }
+
+        // Only admins are allowed to remove slots
+        if (currentUser == null || !"ADMIN".equalsIgnoreCase(currentUser.getAccountType())) {
+            Message resp = new Message(Message.TYPE_REMOVE_SLOT);
+            resp.setStatus("error");
+            resp.setText("Only admins can remove slots");
+            send(resp);
+            return;
+        }
+
+        boolean removed = parkingSystem.removeSlotById(slotId);
+
+        Message resp = new Message(Message.TYPE_REMOVE_SLOT);
+        if (!removed) {
+            resp.setStatus("error");
+            resp.setText("No slot with id " + slotId);
+        } else {
+            resp.setStatus("success");
+            resp.setText("Slot " + slotId + " removed.");
+        }
+        send(resp);
+    }
+    
+ // helper to find a slot by ID
+    private ParkingSlot findSlotById(int slotId) {
+        for (ParkingSlot s : parkingSystem.getSlots()) {
+            if (s.getSlotID() == slotId) {
+                return s;
+            }
+        }
+        return null;
+    }
+
+    // handle reservation messages from a client
+    private void handleReserveSlot(Message message) throws IOException {
+        int slotId = message.getSlotId();
+        Message resp = new Message(Message.TYPE_RESERVE_SLOT);
+
+        if (slotId <= 0) {
+            resp.setStatus("error");
+            resp.setText("Invalid slot id: " + slotId);
+            send(resp);
+            return;
+        }
+
+        ParkingSlot slot = findSlotById(slotId);
+        if (slot == null) {
+            resp.setStatus("error");
+            resp.setText("No slot with id " + slotId);
+            send(resp);
+            return;
+        }
+
+        if (slot.isOccupied()) {
+            resp.setStatus("error");
+            resp.setText("Slot " + slotId + " is already occupied.");
+            send(resp);
+            return;
+        }
+
+        // Mark the slot as occupied in the SERVER'S ParkingSystem
+        slot.setOccupied(true);
+        // later: create a server-side Ticket using TicketService, attach vehicle, etc.
+
+        resp.setStatus("success");
+        resp.setText("Slot " + slotId + " reserved on server.");
+        send(resp);
+
+        // (maybe for the future): broadcast the updated slots list to all clients
+        // java.util.List<ParkingSlot> allSlots = parkingSystem.getSlots();
+        // Message update = Message.makeSlotsUpdate(allSlots);
+        // server.broadcast(update);
+    }
+    
 }
