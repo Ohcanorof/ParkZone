@@ -373,6 +373,8 @@ class VehicleTest {
 	}
 	
 	
+<<<<<<< HEAD
+=======
 	
 	
 	
@@ -389,6 +391,7 @@ class VehicleTest {
 	
 	
 	
+>>>>>>> 23b811087ec9c7d2f890e3a7b170e7856ea6fa3c
 
 }
 >>>>>>> main

@@ -27,6 +27,68 @@ public abstract class Vehicle implements Payable, Serializable{
 	}
 	
 	//methods:
+<<<<<<< HEAD
+	public double calculateFee(int durationMinutes) {
+	    // no time parked = no charge
+	    if (durationMinutes <= 0) {
+	        return 0.0;
+	    }
+
+	    double hours = durationMinutes / 60.0;
+	    double amount;
+
+	    // If type is not set, treat like a regular CAR.
+	    if (type == null) {
+	        amount = 5.0 * hours; // same as CAR
+	    } else {
+	        switch (type) {
+	            case CAR -> {
+	                // CAR: $5 per hour
+	                amount = 5.0 * hours;
+	            }
+	            case MOTORCYCLE -> {
+	                // MOTORCYCLE: $2 per 30 min -> $4 per hour
+	                amount = 4.0 * hours;
+	            }
+	            case SCOOTER -> {
+	                // SCOOTER: $2 per 30 min -> $4 per hour
+	                amount = 4.0 * hours;
+	            }
+	            case BUS -> {
+	                // BUS: $25 per visit (flat fee)
+	                amount = 25.0;
+	            }
+	            case TRUCK -> {
+	                // TRUCK: $10 per hour
+	                amount = 10.0 * hours;
+	            }
+	            case VAN -> {
+	                // VAN: $7 per hour
+	                amount = 7.0 * hours;
+	            }
+	            case COMPACT -> {
+	                // COMPACT: reasonable, slightly cheaper than CAR -> $4 per hour
+	                amount = 4.0 * hours;
+	            }
+	            case SUV -> {
+	                // SUV: reasonable, a bit more than CAR -> $6 per hour
+	                amount = 6.0 * hours;
+	            }
+	            case EV -> {
+	                // EV: $6 per hour + $2 charging fee per visit
+	                amount = 6.0 * hours + 2.0;
+	            }
+	            default -> {
+	                // fallback: same as CAR
+	                amount = 5.0 * hours;
+	            }
+	        }
+	    }
+
+	    return amount;
+	}
+
+=======
 	public  double calculateFee(int durationMinutes) {
 		//can adjust later as needed
 		double ratePerHour;
@@ -57,6 +119,7 @@ public abstract class Vehicle implements Payable, Serializable{
 		double hours = durationMinutes/ 60.0;
 		return ratePerHour * hours;
 	}
+>>>>>>> 23b811087ec9c7d2f890e3a7b170e7856ea6fa3c
 	
 	// Payable interface implementation
     @Override
