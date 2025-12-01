@@ -41,7 +41,7 @@ import model.VehicleType;
  * Supports both registered vehicles (quick entry) and walk-up customers (manual entry)
  */
 public class AdminPanel extends JPanel {
-    private final AdminGUI gui;
+	private final Object parentGUI;  // Keep this
     private JPanel contentPanel;
     private CardLayout contentLayout;
     
@@ -56,9 +56,11 @@ public class AdminPanel extends JPanel {
     private JTextArea reportsArea;
     private DefaultTableModel ticketsTableModel;
     private JTable ticketsTable;
+ 
     
-    public AdminPanel(AdminGUI gui) {
-        this.gui = gui;
+    public AdminPanel(Object gui) {
+    	this.parentGUI = gui;
+    	
         setLayout(new BorderLayout());
         setBorder(new EmptyBorder(20, 20, 20, 20));
         
@@ -95,7 +97,7 @@ public class AdminPanel extends JPanel {
         JButton logoutBtn = new JButton("Logout");
         
         refreshBtn.addActionListener(e -> refreshAllData());
-        logoutBtn.addActionListener(e -> gui.logout());
+        logoutBtn.addActionListener(e -> logout());  // Call our logout method instead
         
         bottomPanel.add(refreshBtn);
         bottomPanel.add(logoutBtn);
@@ -105,6 +107,13 @@ public class AdminPanel extends JPanel {
         contentLayout.show(contentPanel, CARD_DASHBOARD);
     }
     
+    private void logout() {
+        if (parentGUI instanceof AdminGUI) {
+            ((AdminGUI) parentGUI).logout();
+        } else if (parentGUI instanceof model.ClientGUI) {
+            ((model.ClientGUI) parentGUI).logout();
+        }
+    }
     // ============================================================
     // SIDE MENU
     // ============================================================
