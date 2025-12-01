@@ -57,9 +57,9 @@ public class Main {
         ps.addUser(testClient);
         
         // Create test vehicles
-        Car car1 = new Car("ABC123", "Toyota", "Camry", Color.BLUE);
-        Car car2 = new Car("XYZ789", "Honda", "Civic", Color.RED);
-        Bike bike1 = new Bike("BIKE01", "Harley", "Sportster", Color.BLACK);
+        Car car1 = new Car("ABC123", "Toyota", "Camry", Colors.BLUE);
+        Car car2 = new Car("XYZ789", "Honda", "Civic", Colors.RED);
+        Bike bike1 = new Bike("BIKE01", "Harley", "Sportster", Colors.BLACK);
         
         testClient.registerVehicle(car1);
         testClient.registerVehicle(car2);

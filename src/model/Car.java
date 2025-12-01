@@ -13,7 +13,7 @@ public class Car extends Vehicle {
 		setType(VehicleType.CAR);
 	}
 	
-	public Car(String plateNumber, String brand, String model, Color color) {
+	public Car(String plateNumber, String brand, String model, Colors color) {
 		super(plateNumber, brand, model, color, VehicleType.CAR);
 	}
 

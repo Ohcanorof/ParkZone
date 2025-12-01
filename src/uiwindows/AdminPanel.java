@@ -639,19 +639,19 @@ public class AdminPanel extends JPanel {
                 String typeStr = (String) typeCombo.getSelectedItem();
                
                 
-                model.Color vehicleColor;
+                model.Colors vehicleColor;
                 switch(colorStr) {
-                    case "BLACK": vehicleColor = model.Color.BLACK; break;
-                    case "WHITE": vehicleColor = model.Color.WHITE; break;
-                    case "RED": vehicleColor = model.Color.RED; break;
-                    case "BLUE": vehicleColor = model.Color.BLUE; break;
-                    case "GREEN": vehicleColor = model.Color.GREEN; break;
-                    case "YELLOW": vehicleColor = model.Color.YELLOW; break;
-                    case "SILVER": vehicleColor = model.Color.SILVER; break;
-                    case "GOLDEN": vehicleColor = model.Color.GOLDEN; break;
-                    case "ORANGE": vehicleColor = model.Color.ORANGE; break;
-                    case "PURPLE": vehicleColor = model.Color.PURPLE; break;
-                    default: vehicleColor = model.Color.BLACK; break;
+                    case "BLACK": vehicleColor = model.Colors.BLACK; break;
+                    case "WHITE": vehicleColor = model.Colors.WHITE; break;
+                    case "RED": vehicleColor = model.Colors.RED; break;
+                    case "BLUE": vehicleColor = model.Colors.BLUE; break;
+                    case "GREEN": vehicleColor = model.Colors.GREEN; break;
+                    case "YELLOW": vehicleColor = model.Colors.YELLOW; break;
+                    case "SILVER": vehicleColor = model.Colors.SILVER; break;
+                    case "GOLDEN": vehicleColor = model.Colors.GOLDEN; break;
+                    case "ORANGE": vehicleColor = model.Colors.ORANGE; break;
+                    case "PURPLE": vehicleColor = model.Colors.PURPLE; break;
+                    default: vehicleColor = model.Colors.BLACK; break;
                 }
 
                 VehicleType type = VehicleType.valueOf(typeStr);

@@ -13,7 +13,7 @@ public class Bike extends Vehicle {
 		setType(VehicleType.MOTORCYCLE);
 	}
 	
-	public Bike(String plateNumber, String brand, String model, Color color) {
+	public Bike(String plateNumber, String brand, String model, Colors color) {
 		super(plateNumber, brand, model, color, VehicleType.MOTORCYCLE);
 	}
 
