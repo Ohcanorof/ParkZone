@@ -334,9 +334,9 @@ public class SlotsPanel extends JPanel{
 	        Vehicle vehicle;
 	        switch (vType) {
 	            case MOTORCYCLE -> vehicle = new Bike();
-	            default        -> vehicle = new Car(plate, "Unknown", "Unknown", null, VehicleType.REGULAR);
+	            default        -> vehicle = new Car();
 	        }
-
+	        
 	        vehicle.setPlateNumber(plate);
 	        vehicle.setBrand(brand); 
 	        vehicle.setModel(model);
