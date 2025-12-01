@@ -7,8 +7,11 @@ import model.ParkingSlot;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import model.Ticket;
+import java.util.Collections;
 import model.Vehicle;
 import model.Message;
+import java.lang.ClassNotFoundException;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
@@ -226,6 +229,28 @@ public class ClientGUI {
 		sp.loadSlots(slots);
 		sp.updateRoleUI();
 		cardLayout.show(root, SlotPage);
+	}
+	
+	public List<Ticket> fetchTicketsFromServer() {
+	    // if we're not connected, just give an empty list
+	    if (!connected || events == null) {
+	        return Collections.emptyList();
+	    }
+	    if (getCurrentUser() == null) {
+	        return Collections.emptyList();
+	    }
+	    
+	    try {
+	        return events.fetchTicketsFromServer();
+	    } catch (IOException | ClassNotFoundException ex) {
+	        ex.printStackTrace();
+	        // might also add thiis popup later
+	        // JOptionPane.showMessageDialog(null,
+	        //         "Failed to load tickets from server:\n" + ex.getMessage(),
+	        //         "Network Error",
+	        //         JOptionPane.ERROR_MESSAGE);
+	        return Collections.emptyList();
+	    }
 	}
 	
 	public void openAdminSlotConfigDialog(ParkingSlot slot) {

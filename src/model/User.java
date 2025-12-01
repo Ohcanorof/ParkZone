@@ -1,13 +1,15 @@
 package model;
 
-public abstract class User {
-	
+import java.io.Serializable;
+
+public abstract class User implements Serializable {
+	private static final long serialVersionUID = 1L;
 	private int ID;
 	private String firstName;
 	private String lastName;
 	private String email;
 	private String password; //we can also add phone number if we want --> if we do we also need to make getters and setters for them too
-	private String AccountType;// user can be Admin, Customer, or Operator
+	private String AccountType;// user can be Admin or Customer
 	protected Actionable[] actions;
 	
 	//class methods

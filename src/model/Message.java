@@ -1,6 +1,7 @@
 package model;
 
 import java.io.Serializable;
+import java.util.List;
 
 public class Message implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -17,6 +18,7 @@ public class Message implements Serializable {
     public static final String TYPE_RESERVE_SLOT = "reserve_slot";
     public static final String TYPE_SLOTS_UPDATE  = "slots_update";
     public static final String TYPE_GET_TICKETS = "get_tickets";
+    public static final String TYPE_TICKETS_DATA  = "tickets_data";
     
     // Message fields
     private final String type; // Immutable
@@ -24,6 +26,7 @@ public class Message implements Serializable {
     private String text; // Mutable 
     private int slotId;
     private java.util.List<model.ParkingSlot> slots;
+    private List<Ticket> tickets;
     
     /**
      * Constructor for creating a message with specified type
@@ -79,6 +82,10 @@ public class Message implements Serializable {
         return slots;
     }
     
+    public List<Ticket> getTickets() {
+    	return tickets;
+    }
+    
     // Setters for mutable fields
     public void setStatus(String status) {
         this.status = status;
@@ -94,6 +101,10 @@ public class Message implements Serializable {
     
     public void setSlots(java.util.List<model.ParkingSlot> slots) {
         this.slots = slots;
+    }
+    
+    public void setTickets(List<Ticket> tickets) {
+    	this.tickets = tickets;
     }
     
     @Override

@@ -1,12 +1,15 @@
 package model;
 
-public class ParkingSlot {
-
+import java.io.Serializable;
+public class ParkingSlot implements Serializable {
+	
+	private static final long serialVersionUID = 1L;
 	private int SlotID;
 	private boolean isOccupied;
 	private Vehicle vehicle;
 	private VehicleType allowedType;
 	private double hourlyRate;
+	private boolean outOfService; //for admin control
 
 	//constructor
 	public ParkingSlot(){
@@ -20,6 +23,7 @@ public class ParkingSlot {
         this.hourlyRate = 0.0;
 	}
 
+	//---------------------------------------------------
 	//class methods
 	public void assignVehicle(Vehicle v){
 		this.vehicle = v;
@@ -31,7 +35,8 @@ public class ParkingSlot {
 		this.vehicle = null;
 		this.isOccupied = false;
 	}
-
+	
+	//------------------------------------------------
 	//getters
 	public int getSlotID() {
 		return SlotID;
@@ -52,7 +57,12 @@ public class ParkingSlot {
 	public boolean isOccupied() {
 		return isOccupied;
 	}
-
+	
+	public boolean isOutOfService() {
+        return outOfService;
+    }
+	
+	//-------------------------------------------------------
 	//setters
 
 	public void setSlotID(int id) {
@@ -77,6 +87,12 @@ public class ParkingSlot {
         this.hourlyRate = hourlyRate;
     }
 	
+	    public void setOutOfService(boolean outOfService) {
+        this.outOfService = outOfService;
+    }
+	    
+	//-----------------------------------------------------
+	//helper
 	//tostring()
 	@Override
 	public String toString() {
