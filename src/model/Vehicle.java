@@ -1,11 +1,13 @@
 package model;
 
 import java.time.Duration;
+import java.io.Serializable;
 /*
  * Vehicle will be abstract class and every Vehicle type will inherit it
  */
-public abstract class Vehicle implements Payable{
+public abstract class Vehicle implements Payable, Serializable{
 	
+	private static final long serialVersionUID = 1L;
 	private String plateNumber;	// the plate number will be unique ID
 	private String brand;
 	private String model;

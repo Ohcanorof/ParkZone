@@ -11,5 +11,6 @@ public enum VehicleType {
 	COMPACT,
 	SUV,
 	EV //ELETRIC VEHICLE
+, REGULAR
 
 }

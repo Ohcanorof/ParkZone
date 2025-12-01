@@ -9,7 +9,6 @@ import model.ParkingSlot;
 import model.User;
 import model.Admin;
 import model.VehicleType;
-import model.TicketService;
 import model.Colors;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
@@ -33,7 +32,6 @@ public class SlotsPanel extends JPanel{
     private JPanel contentPanel;
     private CardLayout contentLayout;
     private JTextArea accountInfoArea;
-    private final TicketService ticketService = new TicketService();
     
     //names for the cards
     private static final String CARD_SLOTS = "SLOTS";
@@ -58,6 +56,9 @@ public class SlotsPanel extends JPanel{
 	private DefaultListModel<String> reservationsModel;
 	private JList<String> reservationsList;
 	private final List<Ticket> myReservations = new ArrayList<>();
+	
+	//tickets table
+	private JTable ticketsTable;
 	//admin button
 	
 	public SlotsPanel(ClientGUI gui) {
@@ -148,6 +149,7 @@ public class SlotsPanel extends JPanel{
 		});
 		
 		viewReservationsBtn.addActionListener(e->{
+			refreshReservationsList();
 			contentLayout.show(contentPanel, CARD_RESERVATIONS);
 		});
 		
@@ -250,7 +252,7 @@ public class SlotsPanel extends JPanel{
 
 	    JPanel form = new JPanel(new GridLayout(0, 1, 8, 8));
 
-	    JTextField plateField  = new JTextField();
+	    JTextField plateNumber  = new JTextField();
 	    JTextField brandField  = new JTextField();
 	    JTextField modelField  = new JTextField();
 	    JTextField colorField  = new JTextField();
@@ -261,7 +263,7 @@ public class SlotsPanel extends JPanel{
 	    });
 
 	    form.add(new JLabel("Plate Number:"));
-	    form.add(plateField);
+	    form.add(plateNumber);
 	    form.add(new JLabel("Brand:"));
 	    form.add(brandField);
 	    form.add(new JLabel("Model:"));
@@ -278,7 +280,7 @@ public class SlotsPanel extends JPanel{
 
 	    submitBtn.addActionListener(e -> {
 	        // basic validation stuff
-	        String plate = plateField.getText().trim();
+	        String plate = plateNumber.getText().trim();
 	        String brand = brandField.getText().trim();
 	        String model = modelField.getText().trim();
 	        String colorText = colorField.getText().trim();
@@ -332,7 +334,7 @@ public class SlotsPanel extends JPanel{
 	        Vehicle vehicle;
 	        switch (vType) {
 	            case MOTORCYCLE -> vehicle = new Bike();
-	            default        -> vehicle = new Car();
+	            default        -> vehicle = new Car(plate, "Unknown", "Unknown", null, VehicleType.REGULAR);
 	        }
 
 	        vehicle.setPlateNumber(plate);
@@ -354,7 +356,7 @@ public class SlotsPanel extends JPanel{
 	        );
 
 	        // clear fields
-	        plateField.setText("");
+	        plateNumber.setText("");
 	        brandField.setText("");
 	        modelField.setText("");
 	        colorField.setText("");
@@ -450,39 +452,58 @@ public class SlotsPanel extends JPanel{
 	    //get owning window for dialog parent
 	    java.awt.Window owner = SwingUtilities.getWindowAncestor(this);
 
-	    ReservationDialog dialog = new ReservationDialog(
-	            owner,
-	            client,
-	            slot,
-	            ticketService,
-	            this::addReservation   //callback when ticket is created
-	    );
+	    ReservationDialog dialog = new ReservationDialog(SwingUtilities.getWindowAncestor(this), gui, client, slot, createdTicket -> { /* optional hook */ });
 	    dialog.setLocationRelativeTo(this);
 	    dialog.setVisible(true);
 	}
 	
 
 	private void refreshReservationsList() {
-        if (reservationsModel == null) return;
+		if (reservationsModel == null) return;
 
-        reservationsModel.clear();
+	    reservationsModel.clear();
+	    myReservations.clear();
 
-        if (myReservations.isEmpty()) {
-            reservationsModel.addElement("(no reservations yet)");
-            return;
-        }
+	    // Get tickets from server (for customers: their tickets; for admins: all tickets)
+	    java.util.List<Ticket> tickets = gui.fetchTicketsFromServer();
 
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+	    if (tickets == null || tickets.isEmpty()) {
+	        reservationsModel.addElement("(no reservations yet)");
+	        return;
+	    }
 
-        for (Ticket t : myReservations) {
-            int slotId = (t.getSlot() != null) ? t.getSlot().getSlotID() : -1;
-            String when = (t.getEntryTime() != null) ? t.getEntryTime().format(fmt) : "(unknown time)";
-            String plate = (t.getVehicle() != null && t.getVehicle().getPlateNumber() != null) ? t.getVehicle().getPlateNumber() : "(no plate)";
-            double fee = t.getTotalFee();
+	    // We only want *active* reservations in this view
+	    for (Ticket t : tickets) {
+	        if (!t.isActive()) {
+	            continue;  // skip closed/paid tickets
+	        }
+	        myReservations.add(t);
+	    }
 
-            String line = String.format("Ticket #%d | Slot %d | %s | Vehicle %s | $%.2f", t.getTicketID(), slotId, when, plate, fee);
-            reservationsModel.addElement(line);
-        }
+	    if (myReservations.isEmpty()) {
+	        reservationsModel.addElement("(no reservations yet)");
+	        return;
+	    }
+
+	    java.time.format.DateTimeFormatter fmt =
+	            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+	    for (Ticket t : myReservations) {
+	        int slotId = (t.getSlot() != null) ? t.getSlot().getSlotID() : -1;
+	        String when = (t.getEntryTime() != null)
+	                      ? t.getEntryTime().format(fmt)
+	                      : "(unknown time)";
+	        String plate = (t.getVehicle() != null && t.getVehicle().getPlateNumber() != null)
+	                       ? t.getVehicle().getPlateNumber()
+	                       : "(no plate)";
+	        double fee = t.getTotalFee();
+
+	        String line = String.format(
+	                "Ticket #%d | Slot %d | %s | Vehicle %s | $%.2f",
+	                t.getTicketID(), slotId, when, plate, fee
+	        );
+	        reservationsModel.addElement(line);
+	    }
     }
 	
 	//pay for reservations
@@ -668,64 +689,91 @@ public class SlotsPanel extends JPanel{
 	
 	private String buildAccountInfoText() {
 		StringBuilder sb = new StringBuilder();
-		
-		User user = gui.getCurrentUser();
-		String role = gui.getRole();
-		
-		if(user == null) {
-			sb.append("Not logged in or user info not loaded yet.\n\n");
-			sb.append("Role: ").append(role != null ? role : "(unknown)").append("\n");
-			sb.append("\nLater, this can be populated from the real server user object.");
-		}
-		else {
-			sb.append("Name: ").append(user.getFullName() != null ? user.getFullName() : "(unknown)").append("\n");
-			sb.append("Email: ").append(user.getEmail() != null ? user.getEmail() : "(unknown)").append("\n");
-			sb.append("Role: ");
-			if(user.getAccountType() != null) {
-				sb.append(user.getAccountType());
-			}else if(role != null){
-				sb.append(role);
-			}
-			else {
-				sb.append("(unknown)");
-			}
-			sb.append("\n");
-			sb.append("User ID: ").append(user.getID()).append("\n");
-			sb.append("\nRegistered Vehicles:\n");
-			//if chain for the vehicle info to be displayed in the account info section.
-			if (user instanceof Client) {
-		        Client client = (Client) user;
-		        List<Vehicle> vehicles = client.getRegisteredVehicles();
 
-		        if (vehicles == null || vehicles.isEmpty()) {
-		            sb.append("  (none)\n");
-		        } else {
-		            for (Vehicle v : vehicles) {
-		                if (v == null) continue;
-		                sb.append("  - Plate: ")
-		                  .append(v.getPlateNumber() != null ? v.getPlateNumber() : "(unknown)");
+	    User user = gui.getCurrentUser();
+	    if (user == null) {
+	        sb.append("Not logged in.\n");
+	        return sb.toString();
+	    }
 
-		                sb.append(" | Type: ")
-		                  .append(v.getType() != null ? v.getType().name() : "(unknown)");
+	    // --- Basic account info ---
+	    sb.append("Account Information\n");
+	    sb.append("-------------------\n");
+	    sb.append("Name:  ")
+	      .append(user.getFirstName())
+	      .append(" ")
+	      .append(user.getLastName())
+	      .append("\n");
+	    sb.append("Email: ")
+	      .append(user.getEmail())
+	      .append("\n");
+	    sb.append("Role:  ")
+	      .append(user.getAccountType())
+	      .append("\n\n");
 
-		                sb.append(" | Brand: ")
-		                  .append(v.getBrand() != null ? v.getBrand() : "(unknown)");
+	    // --- Vehicles (for customers) ---
+	    if (user instanceof Client client) {
+	        sb.append("Registered Vehicles:\n");
+	        List<Vehicle> vehicles = client.getRegisteredVehicles();
+	        if (vehicles == null || vehicles.isEmpty()) {
+	            sb.append("  (none)\n");
+	        } else {
+	            for (Vehicle v : vehicles) {
+	                sb.append("  - ")
+	                  .append(v.getPlateNumber())
+	                  .append(" (")
+	                  .append(v.getType())
+	                  .append(")\n");
+	            }
+	        }
+	        sb.append("\n");
+	    }
 
-		                sb.append(" | Model: ")
-		                  .append(v.getModel() != null ? v.getModel() : "(unknown)");
+	    // --- Tickets / Reservations from the server ---
+	    sb.append("Tickets / Reservations:\n");
 
-		                sb.append("\n");
-		            }
-		        }
-		    } else {
-		        //for Admin or other roles
-		        sb.append("  (not a client account)\n");
-		    }
+	    List<Ticket> tickets = gui.fetchTicketsFromServer();
+	    if (tickets == null || tickets.isEmpty()) {
+	        sb.append("  (none)\n");
+	    } else {
+	        for (Ticket t : tickets) {
+	            sb.append("  #")
+	              .append(t.getTicketID())
+	              .append(" | Slot: ");
+	            if (t.getSlot() != null) {
+	                sb.append(t.getSlot().getSlotID());
+	            } else {
+	                sb.append("-");
+	            }
 
-			
-		}
-		
-		return sb.toString();
+	            sb.append(" | Plate: ");
+	            if (t.getVehicle() != null) {
+	                sb.append(t.getVehicle().getPlateNumber());
+	            } else {
+	                sb.append("-");
+	            }
+
+	            sb.append(" | Status: ")
+	              .append(t.isActive() ? "ACTIVE" : "CLOSED");
+
+	            sb.append(" | Entry: ")
+	              .append(t.getEntryTime());
+
+	            sb.append(" | Exit: ");
+	            if (t.getExitTime() != null) {
+	                sb.append(t.getExitTime());
+	            } else {
+	                sb.append("-");
+	            }
+
+	            sb.append(" | Fee: ")
+	              .append(t.getTotalFee());
+
+	            sb.append("\n");
+	        }
+	    }
+
+	    return sb.toString();
 	}
 	
 	

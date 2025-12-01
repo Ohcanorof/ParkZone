@@ -3,13 +3,13 @@ package model;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 public class ParkingSystemServer {
 	//attributes
 	private final int port;
@@ -17,13 +17,15 @@ public class ParkingSystemServer {
 	private ExecutorService clientPool;
 	private final Map<String, ClientHandler> clientsById = new ConcurrentHashMap<>();
 	private final AtomicBoolean running = new AtomicBoolean(false);	
-    private final ParkingSystem parkingSystem = ParkingSystem.getInstance();
-
+    private final ParkingSystem parkingSystem;
+    private final TicketService ticketService;
 	
 	
 	//constructor
 	public ParkingSystemServer(int port) {
 		this.port = port;
+		this.parkingSystem = ParkingSystem.loadOrCreateDefault();
+        this.ticketService = new TicketService();
 	}
 	
 	//operations
@@ -121,7 +123,12 @@ public class ParkingSystemServer {
 	public ParkingSystem getParkingSystem() {
 		return parkingSystem;
 	}
-	/** Send a message to one specific client id */
+	
+	public TicketService getTicketService() {
+        return ticketService;
+    }
+	
+	//Send a message to one specific client id
     public void sendTo(String id, Message msg) {
         ClientHandler handler = clientsById.get(id);
         if (handler != null) {
