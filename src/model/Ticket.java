@@ -57,6 +57,13 @@ public class Ticket implements Serializable {
 		return nextId++;
 	}
 	
+	private Double feeOverride = null;  // Add field at top
+
+	public void setFeeOverride(double fee) {
+	    this.feeOverride = fee;
+	}
+
+	
 	//function for ticket closing
 	public void closeTicket(LocalDateTime exitTime) {
 		if (!isActive) {
@@ -119,8 +126,12 @@ public class Ticket implements Serializable {
 		return exitTime;
 	}
 
+	// Modify getTotalFee():
 	public double getTotalFee() {
-		return totalFee;
+	    if (feeOverride != null) {
+	        return feeOverride;
+	    }
+	    return totalFee;
 	}
 
 	public boolean isActive() {
@@ -187,6 +198,8 @@ public class Ticket implements Serializable {
 	public void setPaymentMethod(String paymentMethod) {
 	    this.paymentMethod = paymentMethod;
 	}
+	
+	
 	
 	//helper function for the plate+id ticket id format
 	//returns the ticketID as plate+ ticket id, ex: plate# is 112ad12 
