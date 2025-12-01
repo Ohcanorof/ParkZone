@@ -32,6 +32,8 @@ public class SlotsPanel extends JPanel{
     private JPanel contentPanel;
     private CardLayout contentLayout;
     private JTextArea accountInfoArea;
+    private JButton gateAttendantBtn;  // Add this field
+    
     
     //names for the cards
     private static final String CARD_SLOTS = "SLOTS";
@@ -39,6 +41,7 @@ public class SlotsPanel extends JPanel{
     private static final String CARD_ACCOUNT = "ACCOUNT";
     private static final String CARD_RESERVATIONS = "RESERVATIONS";
     private static final String CARD_ADMIN_SLOTS = "ADMIN_SLOTS";
+    private static final String CARD_ADMIN_PANEL = "ADMIN_PANEL";
     
     // side-menu buttons
     private JButton viewSlotsBtn;
@@ -81,6 +84,7 @@ public class SlotsPanel extends JPanel{
 		vehicleRegOrAddSlotsBtn = new JButton("Register Vehicle");
 		viewAccountBtn = new JButton("View Account");
 		viewReservationsBtn = new JButton("View Reservations");
+		gateAttendantBtn = new JButton("Gate Attendant");
 		logoutBtn = new JButton("Logout");
 		
 		//this gives the box look for the buttons
@@ -90,12 +94,20 @@ public class SlotsPanel extends JPanel{
 		        vehicleRegOrAddSlotsBtn,
 		        viewAccountBtn,
 		        viewReservationsBtn,
+		        gateAttendantBtn,  // NEW
 		        logoutBtn
 		}) {
 		    b.setPreferredSize(menuButtonSize);
 		    menuPanel.add(b);
 		}
 		add(menuPanel, BorderLayout.WEST);
+		
+		// Wire up the button:
+		gateAttendantBtn.addActionListener(e -> {
+		    contentLayout.show(contentPanel, CARD_ADMIN_PANEL);
+		});
+		// Make it visible only to admins:
+		gateAttendantBtn.setVisible(isAdmin());
 		
 		//box to the right (cards)
 		contentLayout = new CardLayout();
@@ -114,6 +126,9 @@ public class SlotsPanel extends JPanel{
 		contentPanel.add(adminSlotsCard,   CARD_ADMIN_SLOTS);
 		contentPanel.add(accountCard, CARD_ACCOUNT);
 		contentPanel.add(reservationCard, CARD_RESERVATIONS);
+		
+		JPanel adminPanelCard = new AdminPanel(gui);  // Pass ClientGUI
+		contentPanel.add(adminPanelCard, CARD_ADMIN_PANEL);
 
 		add(contentPanel, BorderLayout.CENTER);
 		
@@ -179,9 +194,12 @@ public class SlotsPanel extends JPanel{
 	    if (isAdmin) {
 	        vehicleRegOrAddSlotsBtn.setText("Add/Remove Slots");
 	        vehicleRegOrAddSlotsBtn.setToolTipText("Add or configure parking slots");
+	        gateAttendantBtn.setVisible(true);  // NEW - Show gate attendant button
+	        
 	    } else {
 	        vehicleRegOrAddSlotsBtn.setText("Register Vehicle");
 	        vehicleRegOrAddSlotsBtn.setToolTipText("Register a new vehicle");
+	        gateAttendantBtn.setVisible(false);  // NEW - Hide for customers
 	    }
 	}
 	
