@@ -2,18 +2,14 @@ package junitTesting;
 
 import model.*;
 import static org.junit.jupiter.api.Assertions.*;
-<<<<<<< HEAD
-=======
 import model.Vehicle;
 import model.Colors;
 import model.VehicleType;
->>>>>>> main
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import java.time.Duration;
 
 class VehicleTest {
-<<<<<<< HEAD
 	
 	// Test subclass since Vehicle is abstract
 	private static class TestVehicle extends Vehicle {
@@ -21,8 +17,14 @@ class VehicleTest {
 			super();
 		}
 		
-		public TestVehicle(String plateNumber, String brand, String model, Color color, VehicleType type) {
+		public TestVehicle(String plateNumber, String brand, String model, Colors color, VehicleType type) {
 			super(plateNumber, brand, model, color, type);
+		}
+
+		@Override
+		public double calculateFee(long minutesParked) {
+			// TODO Auto-generated method stub
+			return 0;
 		}
 	}
 	
@@ -48,12 +50,12 @@ class VehicleTest {
 	
 	@Test
 	void testParameterizedConstructor() {
-		Vehicle v = new TestVehicle("ABC123", "Toyota", "Camry", Color.BLUE, VehicleType.CAR);
+		Vehicle v = new TestVehicle("ABC123", "Toyota", "Camry", Colors.BLUE, VehicleType.CAR);
 		
 		assertEquals("ABC123", v.getPlateNumber());
 		assertEquals("Toyota", v.getBrand());
 		assertEquals("Camry", v.getModel());
-		assertEquals(Color.BLUE, v.getColor());
+		assertEquals(Colors.BLUE, v.getColor());
 		assertEquals(VehicleType.CAR, v.getType());
 	}
 	
@@ -79,8 +81,8 @@ class VehicleTest {
 	
 	@Test
 	void testSetGetColor() {
-		vehicle.setColor(Color.RED);
-		assertEquals(Color.RED, vehicle.getColor());
+		vehicle.setColor(Colors.RED);
+		assertEquals(Colors.RED, vehicle.getColor());
 	}
 	
 	@Test
@@ -210,7 +212,7 @@ class VehicleTest {
 		vehicle.setPlateNumber("TEST123");
 		vehicle.setBrand("Toyota");
 		vehicle.setModel("Corolla");
-		vehicle.setColor(Color.WHITE);
+		vehicle.setColor(Colors.WHITE);
 		vehicle.setType(VehicleType.CAR);
 		
 		String result = vehicle.toString();
@@ -241,12 +243,12 @@ class VehicleTest {
 	
 	@Test
 	void testCarParameterizedConstructor() {
-		Car car = new Car("CAR123", "Honda", "Accord", Color.BLACK);
+		Car car = new Car("CAR123", "Honda", "Accord", Colors.BLACK);
 		
 		assertEquals("CAR123", car.getPlateNumber());
 		assertEquals("Honda", car.getBrand());
 		assertEquals("Accord", car.getModel());
-		assertEquals(Color.BLACK, car.getColor());
+		assertEquals(Colors.BLACK, car.getColor());
 		assertEquals(VehicleType.CAR, car.getType());
 	}
 	
@@ -268,12 +270,12 @@ class VehicleTest {
 	
 	@Test
 	void testBikeParameterizedConstructor() {
-		Bike bike = new Bike("BIKE123", "Harley", "Sportster", Color.RED);
+		Bike bike = new Bike("BIKE123", "Harley", "Sportster", Colors.RED);
 		
 		assertEquals("BIKE123", bike.getPlateNumber());
 		assertEquals("Harley", bike.getBrand());
 		assertEquals("Sportster", bike.getModel());
-		assertEquals(Color.RED, bike.getColor());
+		assertEquals(Colors.RED, bike.getColor());
 		assertEquals(VehicleType.MOTORCYCLE, bike.getType());
 	}
 	
@@ -321,15 +323,8 @@ class VehicleTest {
 			assertTrue(fee >= 0, "Fee should be non-negative for " + type);
 		}
 	}
-}
-=======
 
-	private static class TestVehicle extends Vehicle {
-        @Override
-        public double calculateFee(long minutesParked) {
-            return 0.0;
-        }
-    }
+
 	
 	@Test
 	void settersAndGettersTest() {
@@ -337,7 +332,7 @@ class VehicleTest {
 		
 		//setting vehicle
 		v.setPlateNumber("XYZ789");
-        v.setBramd("Honda");
+        v.setBrand("Honda");
         v.setModel("Civic");
         v.setColor(Colors.BLUE);
         v.setType(VehicleType.CAR);
@@ -358,7 +353,7 @@ class VehicleTest {
 		
 		//setting vehicle
 		v.setPlateNumber("XYZ789");
-        v.setBramd("Honda");
+        v.setBrand("Honda");
         v.setModel("Civic");
         v.setColor(Colors.BLUE);
         v.setType(VehicleType.CAR);
@@ -372,26 +367,4 @@ class VehicleTest {
 		
 	}
 	
-	
-<<<<<<< HEAD
-=======
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
->>>>>>> 23b811087ec9c7d2f890e3a7b170e7856ea6fa3c
-
 }
->>>>>>> main
