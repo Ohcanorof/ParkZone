@@ -328,11 +328,16 @@ public class ClientHandler implements Runnable {
         int nextId = computeNextSlotIdFromServer();
 
         for (int i = 0; i < count; i++) {
-            ParkingSlot s = new ParkingSlot();
-            s.setSlotID(nextId++);
+            // Calculate floor and section for the new slot
+            int floor = ParkingSlot.calculateFloor(nextId);
+            String section = ParkingSlot.calculateSection(nextId);
+            
+            // Create slot with floor/section information
+            ParkingSlot s = new ParkingSlot(nextId, floor, section);
             s.setOccupied(false);
             s.setVehicle(null);
             parkingSystem.addSlot(s);
+            nextId++;
         }
 
         Message resp = new Message(Message.TYPE_ADD_SLOTS);

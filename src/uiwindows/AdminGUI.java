@@ -81,7 +81,7 @@ public class AdminGUI {
     
     private void showAdminPanel() {
         frame.getContentPane().removeAll();
-        AdminPanel adminPanel = new AdminPanel(this);
+        AdminPanel adminPanel = new AdminPanel(this, null);  // No SlotsPanel in standalone AdminGUI
         frame.add(adminPanel, BorderLayout.CENTER);
         frame.revalidate();
         frame.repaint();

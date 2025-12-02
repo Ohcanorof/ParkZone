@@ -34,6 +34,11 @@ public class SlotsPanel extends JPanel{
     private JTextArea accountInfoArea;
     private JButton gateAttendantBtn;  // Add this field
     
+    // Phase 1+2: Floor/section navigation state
+    private int currentFloor = 1;      // Current selected floor (1-6)
+    private String currentSection = "A"; // Current selected section (A-E)
+    private JLabel breadcrumbLabel;    // Shows "Floor 1 > Section A"
+    
     
     //names for the cards
     private static final String CARD_SLOTS = "SLOTS";
@@ -127,7 +132,7 @@ public class SlotsPanel extends JPanel{
 		contentPanel.add(accountCard, CARD_ACCOUNT);
 		contentPanel.add(reservationCard, CARD_RESERVATIONS);
 		
-		JPanel adminPanelCard = new AdminPanel(gui);  // Pass ClientGUI
+		JPanel adminPanelCard = new AdminPanel(gui, this);  // Phase 3: Pass this SlotsPanel for sync
 		contentPanel.add(adminPanelCard, CARD_ADMIN_PANEL);
 
 		add(contentPanel, BorderLayout.CENTER);
@@ -192,14 +197,15 @@ public class SlotsPanel extends JPanel{
 	    }
 
 	    if (isAdmin) {
-	        vehicleRegOrAddSlotsBtn.setText("Add/Remove Slots");
-	        vehicleRegOrAddSlotsBtn.setToolTipText("Add or configure parking slots");
-	        gateAttendantBtn.setVisible(true);  // NEW - Show gate attendant button
+	        // UX IMPROVEMENT: Hide Add/Remove Slots for cleaner admin interface
+	        vehicleRegOrAddSlotsBtn.setVisible(false);
+	        gateAttendantBtn.setVisible(true);  // Show gate attendant button
 	        
 	    } else {
 	        vehicleRegOrAddSlotsBtn.setText("Register Vehicle");
 	        vehicleRegOrAddSlotsBtn.setToolTipText("Register a new vehicle");
-	        gateAttendantBtn.setVisible(false);  // NEW - Hide for customers
+	        vehicleRegOrAddSlotsBtn.setVisible(true);
+	        gateAttendantBtn.setVisible(false);  // Hide for customers
 	    }
 	}
 	
@@ -230,12 +236,48 @@ public class SlotsPanel extends JPanel{
 		JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        // header + filter bar
+        // header
         JLabel header = new JLabel("Parking Map", SwingConstants.CENTER);
         header.setFont(new Font("Arial", Font.BOLD, 18));
 
-        JPanel north = new JPanel(new BorderLayout());
-        north.add(header, BorderLayout.CENTER);
+        // Phase 1+2: Breadcrumb showing current floor + section
+        breadcrumbLabel = new JLabel("Floor 1 > Section A", SwingConstants.CENTER);
+        breadcrumbLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        
+        // Phase 1+2: Floor selector panel
+        JPanel floorSelectorPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+        floorSelectorPanel.add(new JLabel("Select Floor:"));
+        
+        // FINAL UPDATE: All 6 floors are now active!
+        for (int floor = 1; floor <= 6; floor++) {
+            JButton floorBtn = new JButton("Floor " + floor);
+            int floorNumber = floor;
+            
+            // All floors enabled and functional
+            floorBtn.setEnabled(true);
+            floorBtn.addActionListener(e -> {
+                currentFloor = floorNumber;
+                updateBreadcrumb();
+                refreshGrid();
+            });
+            
+            floorSelectorPanel.add(floorBtn);
+        }
+        
+        // Phase 1+2: Section selector panel
+        JPanel sectionSelectorPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+        sectionSelectorPanel.add(new JLabel("Select Section:"));
+        
+        String[] sections = {"A", "B", "C", "D", "E"};
+        for (String section : sections) {
+            JButton sectionBtn = new JButton("Section " + section);
+            sectionBtn.addActionListener(e -> {
+                currentSection = section;
+                updateBreadcrumb();
+                refreshGrid();
+            });
+            sectionSelectorPanel.add(sectionBtn);
+        }
 
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
         filterPanel.add(new JLabel("Filter by vehicle type:"));
@@ -248,7 +290,17 @@ public class SlotsPanel extends JPanel{
         filterCombo.addActionListener(e -> refreshGrid());
         filterPanel.add(filterCombo);
 
-        north.add(filterPanel, BorderLayout.SOUTH);
+        // Phase 1+2: Combine navigation and filter into north panel
+        JPanel north = new JPanel(new BorderLayout());
+        north.add(header, BorderLayout.NORTH);
+        north.add(breadcrumbLabel, BorderLayout.CENTER);
+        
+        JPanel navigationPanel = new JPanel(new GridLayout(3, 1, 0, 5));
+        navigationPanel.add(floorSelectorPanel);
+        navigationPanel.add(sectionSelectorPanel);
+        navigationPanel.add(filterPanel);
+        north.add(navigationPanel, BorderLayout.SOUTH);
+        
         panel.add(north, BorderLayout.NORTH);
 
         // grid panel in the center
@@ -507,7 +559,13 @@ public class SlotsPanel extends JPanel{
 	            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
 	    for (Ticket t : myReservations) {
-	        int slotId = (t.getSlot() != null) ? t.getSlot().getSlotID() : -1;
+	        ParkingSlot slot = t.getSlot();
+	        int slotId = (slot != null) ? slot.getSlotID() : -1;
+	        // Phase 4: Show composite ID alongside global ID
+	        String slotDisplay = (slot != null) 
+	            ? String.format("Slot %d (%s)", slotId, slot.getCompositeID())
+	            : "Slot " + slotId;
+	        
 	        String when = (t.getEntryTime() != null)
 	                      ? t.getEntryTime().format(fmt)
 	                      : "(unknown time)";
@@ -517,8 +575,8 @@ public class SlotsPanel extends JPanel{
 	        double fee = t.getTotalFee();
 
 	        String line = String.format(
-	                "Ticket #%d | Slot %d | %s | Vehicle %s | $%.2f",
-	                t.getTicketID(), slotId, when, plate, fee
+	                "Ticket #%d | %s | %s | Vehicle %s | $%.2f",
+	                t.getTicketID(), slotDisplay, when, plate, fee
 	        );
 	        reservationsModel.addElement(line);
 	    }
@@ -653,7 +711,7 @@ public class SlotsPanel extends JPanel{
 	}
 	
 	//function to refresh the grid
-	private void refreshGrid() {
+	public void refreshGrid() {  // Phase 3: Changed from private to public for cross-panel sync
 		if (gridPanel == null) {
 			return;
 		}
@@ -665,24 +723,28 @@ public class SlotsPanel extends JPanel{
 			lbl.setFont(new Font("Arial", Font.ITALIC, 14));
 			gridPanel.add(lbl, BorderLayout.CENTER);
 		}else {
-			int count = currentSlots.size();
-			int cols = 10; //collums can be changed, 10 set for now
-			int rows = (int) Math.ceil(count/ (double) cols);//very interesting...
-			if(rows <= 0) {
-				rows = 1;
+			// Phase 1+2: Filter slots by current floor and section
+			List<ParkingSlot> filteredSlots = new ArrayList<>();
+			for (ParkingSlot slot : currentSlots) {
+				if (slot.getFloor() == currentFloor && 
+				    currentSection.equals(slot.getSection())) {
+					filteredSlots.add(slot);
+				}
 			}
-			gridPanel.setLayout(new GridLayout(rows, cols, 6, 6));
+			
+			// Phase 1+2: Use 4×5 grid for 20 slots per section
+			gridPanel.setLayout(new GridLayout(4, 5, 6, 6));
 			
 			VehicleType filterType = getSelectedFilterType();
 			
-			for(ParkingSlot slot : currentSlots) {
+			for(ParkingSlot slot : filteredSlots) {
 				SlotCell cell = new SlotCell(gui, slot, filterType);
 				gridPanel.add(cell);
 			}
 			
-			///fill in the remaining cells to make it rectangular
-			int totalCells = rows * cols;
-			for(int i = count; i < totalCells; i++) {
+			// Fill remaining cells to complete 4×5 grid
+			int displayedSlots = filteredSlots.size();
+			for(int i = displayedSlots; i < 20; i++) {
 				JPanel filler = new JPanel();
 				filler.setBackground(new Color(0xF0F0F0));
 				filler.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
@@ -691,6 +753,16 @@ public class SlotsPanel extends JPanel{
 		}
 		gridPanel.revalidate();
 		gridPanel.repaint();
+	}
+	
+	/**
+	 * Phase 1+2: Update breadcrumb label to show current floor + section
+	 */
+	private void updateBreadcrumb() {
+		if (breadcrumbLabel != null) {
+			breadcrumbLabel.setText(String.format("Floor %d > Section %s", 
+				currentFloor, currentSection));
+		}
 	}
 	
 	//function for the filter type
