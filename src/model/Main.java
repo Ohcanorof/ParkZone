@@ -9,14 +9,14 @@ import java.time.LocalDateTime;
 public class Main {
     public static void main(String[] args) {
         // Start server in background thread
-    	Thread serverThread = new Thread(() -> {
-    	    ParkingSystemServer server = new ParkingSystemServer(8080);
-    	    try {
-    	        server.start();  // ✅ Now handles IOException
-    	    } catch (Exception e) {
-    	        e.printStackTrace();
-    	    }
-    	});
+        Thread serverThread = new Thread(() -> {
+            ParkingSystemServer server = new ParkingSystemServer(8080);
+            try {
+                server.start();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
         serverThread.setDaemon(false);
         serverThread.start();
 
@@ -137,7 +137,8 @@ public class Main {
             System.out.println("[Main] Starting CLIENT mode...");
             javax.swing.SwingUtilities.invokeLater(() -> {
                 ClientGUI clientGUI = new ClientGUI();
-                clientGUI.start();  // Use start() instead of showWelcomePage()
+                clientGUI.start();  // Initialize GUI
+                // Auto-connect to server
                 clientGUI.connect("localhost", 8080);
             });
         }

@@ -519,7 +519,7 @@ public class ClientHandler implements Runnable {
                 return;
             }
 
-            //marked the slot as rseserved
+            //marked the slot as reserved
             resp.setStatus("success");
             resp.setText("Slot " + slotId + " reserved on server. Ticket #" + ticket.getTicketID());
             send(resp);

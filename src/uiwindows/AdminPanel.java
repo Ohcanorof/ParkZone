@@ -42,6 +42,7 @@ import model.VehicleType;
  */
 public class AdminPanel extends JPanel {
 	private final Object parentGUI;  // Keep this
+	private final SlotsPanel slotsPanel;  // NEW: Reference for cross-panel refresh
     private JPanel contentPanel;
     private CardLayout contentLayout;
     
@@ -58,8 +59,9 @@ public class AdminPanel extends JPanel {
     private JTable ticketsTable;
  
     
-    public AdminPanel(Object gui) {
+    public AdminPanel(Object gui, SlotsPanel slotsPanel) {
     	this.parentGUI = gui;
+    	this.slotsPanel = slotsPanel;  // Store reference for refresh triggers
     	
         setLayout(new BorderLayout());
         setBorder(new EmptyBorder(20, 20, 20, 20));
@@ -870,5 +872,37 @@ public class AdminPanel extends JPanel {
         refreshDashboard();
         refreshActiveTickets();
         refreshReports();
+        refreshSlotsPanel();  // NEW: Sync slots panel with admin changes
+    }
+    
+    /**
+     * Phase 3: Refresh SlotsPanel to sync parking map after admin actions
+     * CRITICAL FIX: Fetch fresh data from server before repainting
+     */
+    private void refreshSlotsPanel() {
+        if (slotsPanel == null) {
+            return;  // No SlotsPanel (standalone AdminGUI mode)
+        }
+        
+        SwingUtilities.invokeLater(() -> {
+            // Check if we have a ClientGUI to fetch fresh data
+            if (parentGUI instanceof model.ClientGUI) {
+                model.ClientGUI gui = (model.ClientGUI) parentGUI;
+                
+                // Step 1: Fetch fresh slot data from server
+                java.util.List<ParkingSlot> freshSlots = gui.refreshSlots(
+                    gui.getSelectedGarageId(), 
+                    "ALL"
+                );
+                
+                // Step 2: Update SlotsPanel's cached data
+                slotsPanel.loadSlots(freshSlots);
+                
+                // Step 3: refreshGrid() is called automatically by loadSlots()
+            } else {
+                // Fallback for AdminGUI (no server fetch)
+                slotsPanel.refreshGrid();
+            }
+        });
     }
 }
