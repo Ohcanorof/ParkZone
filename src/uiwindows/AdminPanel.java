@@ -24,6 +24,9 @@ import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import model.Admin;
 import model.Bike;
 import model.Car;
@@ -488,18 +491,15 @@ public class AdminPanel extends JPanel {
     private void showEnhancedEntryDialog() {
         ParkingSystem ps = ParkingSystem.getInstance();
         
-        // Check for available slots first
-    
-        ParkingSlot tempSlot = null;
+        // UX IMPROVEMENT: Collect all available slots for dropdown selection
+        List<ParkingSlot> availableSlots = new ArrayList<>();
         for (ParkingSlot slot : ps.getSlots()) {
             if (!slot.isOccupied()) {
-                tempSlot = slot;
-                break;
+                availableSlots.add(slot);
             }
         }
-        final ParkingSlot availableSlot = tempSlot;
         
-        if (availableSlot == null) {
+        if (availableSlots.isEmpty()) {
             JOptionPane.showMessageDialog(this,
                 "No available parking slots!\n\nAll slots are currently occupied.",
                 "Garage Full",
@@ -510,7 +510,7 @@ public class AdminPanel extends JPanel {
         // Create dialog
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), 
             "Manual Vehicle Entry", true);
-        dialog.setSize(550, 650);
+        dialog.setSize(550, 700);  // Increased height for slot selector
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout(10, 10));
         
@@ -520,8 +520,8 @@ public class AdminPanel extends JPanel {
         title.setBorder(new EmptyBorder(10, 0, 10, 0));
         dialog.add(title, BorderLayout.NORTH);
         
-        // Form panel
-        JPanel formPanel = new JPanel(new GridLayout(9, 2, 10, 10));
+        // Form panel - increased rows for slot selector
+        JPanel formPanel = new JPanel(new GridLayout(10, 2, 10, 10));
         formPanel.setBorder(new EmptyBorder(10, 20, 10, 20));
         
         // Entry mode selection
@@ -529,6 +529,16 @@ public class AdminPanel extends JPanel {
             "Quick Entry (Registered Vehicle)",
             "Manual Entry (Walk-up Customer)"
         });
+        
+        // UX IMPROVEMENT: Slot selector dropdown
+        JComboBox<String> slotCombo = new JComboBox<>();
+        for (ParkingSlot slot : availableSlots) {
+            String slotLabel = String.format("Slot %d (%s) - Floor %d", 
+                slot.getSlotID(), 
+                slot.getCompositeID(),
+                slot.getFloor());
+            slotCombo.addItem(slotLabel);
+        }
         
         // Input fields
         JTextField plateField = new JTextField();
@@ -555,6 +565,10 @@ public class AdminPanel extends JPanel {
         formPanel.add(new JLabel("Entry Mode:"));
         formPanel.add(entryModeCombo);
         
+        // UX IMPROVEMENT: Add slot selector
+        formPanel.add(new JLabel("Parking Slot: *"));
+        formPanel.add(slotCombo);
+        
         formPanel.add(new JLabel("License Plate: *"));
         formPanel.add(plateField);
         
@@ -576,8 +590,8 @@ public class AdminPanel extends JPanel {
         // Instructions
         JLabel instructions = new JLabel(
             "<html><i>* Required field<br>" +
-            "Quick Entry: Enter plate only<br>" +
-            "Manual Entry: Fill all fields</i></html>"
+            "Quick Entry: Select slot + enter plate<br>" +
+            "Manual Entry: Select slot + fill all fields</i></html>"
         );
         instructions.setForeground(java.awt.Color.GRAY);
         formPanel.add(instructions);
@@ -682,12 +696,31 @@ public class AdminPanel extends JPanel {
                         vehicle = new Car(plate, brand, vehicleModel, vehicleColor);
                         break;
                 }
-                    
-                    System.out.println("[AdminPanel] Created guest vehicle: " + plate);
-                    
+                vehicle.setType(type);
+                System.out.println("[AdminPanel] Created guest vehicle: " + plate);
                 
-            
+            } else {
+                // Quick Entry - search for registered vehicle
+                System.out.println("[AdminPanel] Quick Entry - searching for plate: " + plate);
                 
+                // Search through all clients for matching vehicle
+                for (User user : ps.getUsers()) {
+                    if (user instanceof Client) {
+                        Client client = (Client) user;
+                        for (Vehicle v : client.getRegisteredVehicles()) {
+                            if (v.getPlateNumber() != null && 
+                                v.getPlateNumber().equalsIgnoreCase(plate)) {
+                                vehicle = v;
+                                System.out.println("[AdminPanel] Found registered vehicle: " + 
+                                    v.getPlateNumber() + " (" + v.getBrand() + " " + v.getModel() + ")");
+                                break;
+                            }
+                        }
+                        if (vehicle != null) break;
+                    }
+                }
+                
+                // If vehicle not found, prompt to switch to manual entry
                 if (vehicle == null) {
                     int choice = JOptionPane.showConfirmDialog(dialog,
                         "Vehicle '" + plate + "' not found in system.\n\nSwitch to Manual Entry mode?",
@@ -701,8 +734,12 @@ public class AdminPanel extends JPanel {
                 }
             }
             
+            // UX IMPROVEMENT: Get the selected slot from dropdown
+            int selectedSlotIndex = slotCombo.getSelectedIndex();
+            ParkingSlot selectedSlot = availableSlots.get(selectedSlotIndex);
+            
             // Issue ticket
-            Ticket ticket = ps.issueTicket(vehicle, availableSlot);
+            Ticket ticket = ps.issueTicket(vehicle, selectedSlot);
             
             // Apply fee override if set
             if (feeOverrideCheck.isSelected() && !feeOverrideField.getText().trim().isEmpty()) {
@@ -723,7 +760,7 @@ public class AdminPanel extends JPanel {
                 "PLATE:        %s\n" +
                 "VEHICLE:      %s %s\n" +
                 "TYPE:         %s\n" +
-                "SLOT:         #%d\n" +
+                "SLOT:         #%d (%s)\n" +  // UX IMPROVEMENT: Show composite ID
                 "ENTRY TIME:   %s\n" +
                 "═══════════════════════════════════════\n\n" +
                 "Entry Type: %s\n\n" +
@@ -733,7 +770,8 @@ public class AdminPanel extends JPanel {
                 vehicle.getBrand(),
                 vehicle.getModel(),
                 vehicle.getType(),
-                availableSlot.getSlotID(),
+                selectedSlot.getSlotID(),
+                selectedSlot.getCompositeID(),  // UX IMPROVEMENT: Show composite ID
                 ticket.getEntryTime().toString(),
                 isManualEntry ? "Walk-up Customer" : "Registered Customer"
             );

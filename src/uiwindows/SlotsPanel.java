@@ -197,14 +197,15 @@ public class SlotsPanel extends JPanel{
 	    }
 
 	    if (isAdmin) {
-	        vehicleRegOrAddSlotsBtn.setText("Add/Remove Slots");
-	        vehicleRegOrAddSlotsBtn.setToolTipText("Add or configure parking slots");
-	        gateAttendantBtn.setVisible(true);  // NEW - Show gate attendant button
+	        // UX IMPROVEMENT: Hide Add/Remove Slots for cleaner admin interface
+	        vehicleRegOrAddSlotsBtn.setVisible(false);
+	        gateAttendantBtn.setVisible(true);  // Show gate attendant button
 	        
 	    } else {
 	        vehicleRegOrAddSlotsBtn.setText("Register Vehicle");
 	        vehicleRegOrAddSlotsBtn.setToolTipText("Register a new vehicle");
-	        gateAttendantBtn.setVisible(false);  // NEW - Hide for customers
+	        vehicleRegOrAddSlotsBtn.setVisible(true);
+	        gateAttendantBtn.setVisible(false);  // Hide for customers
 	    }
 	}
 	
@@ -247,21 +248,18 @@ public class SlotsPanel extends JPanel{
         JPanel floorSelectorPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
         floorSelectorPanel.add(new JLabel("Select Floor:"));
         
+        // FINAL UPDATE: All 6 floors are now active!
         for (int floor = 1; floor <= 6; floor++) {
             JButton floorBtn = new JButton("Floor " + floor);
             int floorNumber = floor;
             
-            if (floor == 1) {
-                floorBtn.setEnabled(true);  // Floor 1 active
-                floorBtn.addActionListener(e -> {
-                    currentFloor = floorNumber;
-                    updateBreadcrumb();
-                    refreshGrid();
-                });
-            } else {
-                floorBtn.setEnabled(false);  // Floors 2-6 disabled
-                floorBtn.setToolTipText("Coming soon");
-            }
+            // All floors enabled and functional
+            floorBtn.setEnabled(true);
+            floorBtn.addActionListener(e -> {
+                currentFloor = floorNumber;
+                updateBreadcrumb();
+                refreshGrid();
+            });
             
             floorSelectorPanel.add(floorBtn);
         }

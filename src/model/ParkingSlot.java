@@ -177,18 +177,16 @@ public class ParkingSlot implements Serializable {
     //==========================================================================
     
     /**
-     * Calculate floor from global slot ID (1-100)
-     * All initial 100 slots are on Floor 1
+     * Calculate floor from global slot ID (1-600)
+     * Slots 1-100 = Floor 1, 101-200 = Floor 2, etc.
      */
     public static int calculateFloor(int slotID) {
-        // Current: All slots on Floor 1
-        // Future expansion: return ((slotID - 1) / 100) + 1;
-        return 1;
+        return ((slotID - 1) / 100) + 1;
     }
     
     /**
-     * Calculate section from global slot ID (1-100)
-     * Sections: A=1-20, B=21-40, C=41-60, D=61-80, E=81-100
+     * Calculate section from global slot ID (1-600)
+     * Each floor has 5 sections: A=x01-x20, B=x21-x40, C=x41-x60, D=x61-x80, E=x81-x00
      */
     public static String calculateSection(int slotID) {
         int sectionIndex = ((slotID - 1) % 100) / 20;

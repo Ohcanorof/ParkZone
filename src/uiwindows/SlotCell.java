@@ -125,16 +125,23 @@ public class SlotCell extends JPanel{
 	}
 	
 	//function for the filter to slot compatibility
-	//type is from the vehicle in the slot, when vehicle types are allowed to ParkingSlot, it can use that instead, will update later
-	
+	// UX FIX: Filter by actual vehicle type in occupied slots
 	private boolean isSlotCompatibleWithFilter(ParkingSlot slot, VehicleType filterType) {
 		if(filterType == null) {
-			return true;//all slots
+			return true;  // "All" selected - show everything
 		}
 		
+		// If slot is occupied, check the VEHICLE's type
+		if(slot.isOccupied() && slot.getVehicle() != null) {
+			Vehicle vehicle = slot.getVehicle();
+			VehicleType vehicleType = vehicle.getType();
+			return vehicleType == filterType;
+		}
+		
+		// If slot is available, check if it ALLOWS this vehicle type
 		VehicleType allowed = slot.getAllowedType();
 		if(allowed == null) {
-			return true; //treat free slots as compatible w all slots, THIS IS NOT COMPLETE YETs
+			return true;  // No restriction - allows all types
 		}
 		
 		return allowed == filterType;

@@ -31,40 +31,40 @@ public class Main {
         ParkingSystem ps = ParkingSystem.getInstance();
 
         // ============================================================
-        // INITIALIZE 100 SLOTS ON FLOOR 1
-        // Floor 1 divided into 5 sections (A-E)
+        // INITIALIZE 600 SLOTS ACROSS 6 FLOORS
+        // Each floor has 100 slots divided into 5 sections (A-E)
         // Each section has 20 slots arranged in 4×5 grid
+        // Total capacity: 600 slots
         // ============================================================
         
-        System.out.println("\n[Main] Initializing 100-slot parking structure...");
+        System.out.println("\n[Main] Initializing 600-slot parking structure...");
         
-        for (int i = 1; i <= 100; i++) {
-            int floor = 1;  // All slots on Floor 1 initially
-            String section;
+        int slotID = 1;
+        for (int floor = 1; floor <= 6; floor++) {
+            System.out.println("[Main] Creating Floor " + floor + "...");
             
-            // Assign section based on slot ID
-            if (i <= 20) {
-                section = "A";  // Slots 1-20 → Section A
-            } else if (i <= 40) {
-                section = "B";  // Slots 21-40 → Section B
-            } else if (i <= 60) {
-                section = "C";  // Slots 41-60 → Section C
-            } else if (i <= 80) {
-                section = "D";  // Slots 61-80 → Section D
-            } else {
-                section = "E";  // Slots 81-100 → Section E
+            for (int sectionIndex = 0; sectionIndex < 5; sectionIndex++) {
+                String section = String.valueOf((char)('A' + sectionIndex));
+                
+                // Create 20 slots for this section
+                for (int slotInSection = 0; slotInSection < 20; slotInSection++) {
+                    ParkingSlot slot = new ParkingSlot(slotID, floor, section);
+                    ps.addSlot(slot);
+                    slotID++;
+                }
+                
+                System.out.println("[Main]   Floor " + floor + ", Section " + section + 
+                    ": Slots " + (slotID - 20) + "-" + (slotID - 1));
             }
-            
-            ParkingSlot slot = new ParkingSlot(i, floor, section);
-            ps.addSlot(slot);
         }
         
-        System.out.println("[Main] ✓ Initialized 100 parking slots");
-        System.out.println("[Main]   Floor 1, Section A: Slots 1-20");
-        System.out.println("[Main]   Floor 1, Section B: Slots 21-40");
-        System.out.println("[Main]   Floor 1, Section C: Slots 41-60");
-        System.out.println("[Main]   Floor 1, Section D: Slots 61-80");
-        System.out.println("[Main]   Floor 1, Section E: Slots 81-100");
+        System.out.println("[Main] ✓ Initialized 600 parking slots across 6 floors");
+        System.out.println("[Main]   Slots 1-100:    Floor 1 (Sections A-E)");
+        System.out.println("[Main]   Slots 101-200:  Floor 2 (Sections A-E)");
+        System.out.println("[Main]   Slots 201-300:  Floor 3 (Sections A-E)");
+        System.out.println("[Main]   Slots 301-400:  Floor 4 (Sections A-E)");
+        System.out.println("[Main]   Slots 401-500:  Floor 5 (Sections A-E)");
+        System.out.println("[Main]   Slots 501-600:  Floor 6 (Sections A-E)");
 
         // ============================================================
         // CREATE TEST USERS
